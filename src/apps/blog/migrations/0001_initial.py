@@ -15,20 +15,47 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Post',
+            name="Post",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200, verbose_name='Title')),
-                ('content', models.TextField(verbose_name='Content')),
-                ('is_published', models.BooleanField(default=False, verbose_name='Is Published')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Date Created')),
-                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Date Updated')),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='blog_posts', to=settings.AUTH_USER_MODEL, verbose_name='Author')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200, verbose_name="Title")),
+                ("content", models.TextField(verbose_name="Content")),
+                (
+                    "is_published",
+                    models.BooleanField(default=False, verbose_name="Is Published"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Date Created"
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Date Updated"),
+                ),
+                (
+                    "author",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="blog_posts",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Author",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Post',
-                'verbose_name_plural': 'Posts',
-                'ordering': ['-created_at'],
+                "verbose_name": "Post",
+                "verbose_name_plural": "Posts",
+                "ordering": ["-created_at"],
             },
         ),
     ]

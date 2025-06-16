@@ -69,4 +69,4 @@ def configure_logging(
         root.setLevel(logging.NOTSET)
 
     logger.remove()
-    logger.add(sink, level=loguru_level, filter=filter_fn) # type: ignore[arg-type]
+    logger.add(sink, level=loguru_level, filter=filter_fn)  # type: ignore[arg-type]

@@ -43,6 +43,8 @@ class CompositeRepository:
 autoconfig = AutoConfig()
 SECRETS_PATH = autoconfig("SECRETS_PATH", default="/run/secrets/")
 
-repository = CompositeRepository(autoconfig.config.repository, RepositorySecret(SECRETS_PATH))
+repository = CompositeRepository(
+    autoconfig.config.repository, RepositorySecret(SECRETS_PATH)
+)
 
 config = Config(repository)

@@ -8,7 +8,7 @@ max_requests = 1000 // Max requests per worker, after which worker will be resta
 max_requests_jitter = 100 // Random jitter to avoid all workers restarting at the same time
 preload_app = True // Preload the application code before forking workers
 ```
-  
+
 # Run project local
 ### Dependencies
 - **Make sure you have the latest version of Python 3.12+ installed.**

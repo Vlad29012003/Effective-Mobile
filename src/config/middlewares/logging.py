@@ -18,6 +18,7 @@ class LoggingMiddleware:
         "/health/": True,
         "/api/v1/schema/": True,
     }
+
     def __init__(self, get_response):
         self.get_response = get_response
         self.logger = logger
