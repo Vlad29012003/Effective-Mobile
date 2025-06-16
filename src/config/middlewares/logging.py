@@ -1,7 +1,5 @@
-# Standard
 import json
 
-# Third party
 from loguru import logger
 
 
@@ -12,14 +10,22 @@ class LoggingMiddleware:
         "csrfmiddlewaretoken",
         "secret",
         "authorization",
+        "refresh",
+        "access",
     }
     SENSITIVE_HEADERS = {"authorization", "cookie"}
-
+    IGNORE_PATHS = {
+        "/health/": True,
+        "/api/v1/schema/": True,
+    }
     def __init__(self, get_response):
         self.get_response = get_response
         self.logger = logger
 
     def __call__(self, request):
+        if self.IGNORE_PATHS.get(request.path, False):
+            return self.get_response(request)
+
         self.log_request(request)
 
         response = self.get_response(request)

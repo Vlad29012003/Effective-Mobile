@@ -1,1 +1,1 @@
-from .dishka_middleware import DishkaMiddleware
+from .dishka import DishkaMiddleware

@@ -51,7 +51,7 @@ def setup_dishka(container: Container) -> None:
     if not hasattr(settings, "MIDDLEWARE"):
         settings.MIDDLEWARE = []
 
-    middleware_path = "config.middlewares.dishka_middleware.DishkaMiddleware"
+    middleware_path = "config.middlewares.dishka.DishkaMiddleware"
 
     if middleware_path not in settings.MIDDLEWARE:
         settings.MIDDLEWARE.insert(0, middleware_path)

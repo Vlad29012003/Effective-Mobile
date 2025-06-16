@@ -17,12 +17,12 @@ beat:
 	${PROJECT_DIR} && celery -A config beat --loglevel=info
 
 # Запуск тестов
-test:
+tests:
 	${PROJECT_DIR} && ${MANAGE_PY} test apps
 
 # Запуск Django тестов
-test_django:
-	${PROJECT_DIR} && ${MANAGE_PY} test apps${app}
+testapp:
+	${PROJECT_DIR} && ${MANAGE_PY} test apps.${app}
 
 # Создание миграций
 migrations:
@@ -41,8 +41,12 @@ superuser:
 	${PROJECT_DIR} && ${MANAGE_PY} createsuperuser
 
 # Запуск Celery worker
-run_celery_worker:
+celery-worker:
 	${PROJECT_DIR} && celery -A config worker --loglevel=info
+
+# Запуск Celery beat
+celery-beat:
+    ${PROJECT_DIR} && celery -A config beat --loglevel=info
 
 # Создание сообщений для перевода
 messages:
@@ -55,3 +59,7 @@ compile:
 # Запуск Docker контейнеров для разработки
 docker-local:
 	docker compose -f docker-compose-locale.yml up --build
+
+# Создание приложение django
+startapp:
+	$(PROJECT_DIR)/apps && mkdir $(name) && cd .. && $(MANAGE_PY) startapp $(name) apps/$(name)

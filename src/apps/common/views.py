@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def trigger_error(request):
+    """
+    For sentry health check and testing purposes.
+    :param request:
+    :return:
+    """
     1 / 0
 
 

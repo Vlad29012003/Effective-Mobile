@@ -26,7 +26,6 @@ urlpatterns = [
     path("", include("django_prometheus.urls")),
     path("admin/", admin.site.urls),
     path("health/", HealthCheckView.as_view(), name="health-check"),
-    path("sentry-debug/", trigger_error),
     path("api/v1/", include(api_urlpatterns)),
 ]
 
@@ -35,3 +34,8 @@ if DEBUG:
     from django.conf.urls.static import static
 
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if settings.SENTRY_DSN:
+    urlpatterns += [
+        path("sentry-debug/", trigger_error),
+    ]
