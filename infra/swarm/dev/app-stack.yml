@@ -1,0 +1,86 @@
+version: '3.9'
+
+x-common: &common
+  image: my-backend:latest #${IMAGE_TAG}
+  secrets:
+    - django_secret_key
+    - postgres_password
+    - redis_password
+    - minio_password
+  env_file:
+    - ../../envs/dev.env
+  networks:
+    - backend-net
+
+services:
+  backend:
+    <<: *common
+    build: ../../../infra
+    ports:
+      - "8000:8000"
+    tty: true
+    healthcheck:
+      test: wget 0.0.0.0:8000/api/health/ -q -O - > /dev/null 2>&1
+      interval: 10s
+      retries: 20
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+#  celery-worker:
+#    <<: *common
+#    command: ../../scripts/start-celery-worker.sh
+#    deploy:
+#      replicas: 2
+#      restart_policy:
+#        condition: on-failure
+#        delay: 5s
+#        max_attempts: 3
+#        window: 120s
+#    healthcheck:
+#      test: [ "CMD-SHELL", "ps aux | grep -q 'celery' || exit 1" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#  celery-beat:
+#    <<: *common
+#    command: ../../scripts/start-celery-beat.sh
+#    deploy:
+#      replicas: 1
+#      restart_policy:
+#        condition: on-failure
+#        delay: 5s
+#        max_attempts: 3
+#        window: 120s
+#    healthcheck:
+#      test: [ "CMD-SHELL", "ps aux | grep -q 'celery beat' || exit 1" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+
+networks:
+  backend-net:
+    external: true
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  django_secret_key:
+    external: true
+  minio_password:
+    external: true

@@ -65,7 +65,7 @@ services:
   celery-worker:
     build:
       context: .
-      dockerfile: infra/Dockerfile
+      dockerfile: Dockerfile
     container_name: ov_admin_celery_worker
     restart: always
     command: /start-celery-worker.sh
@@ -87,7 +87,7 @@ services:
   celery-beat:
     build:
       context: .
-      dockerfile: infra/Dockerfile
+      dockerfile: Dockerfile
     container_name: ov_admin_celery_beat
     restart: always
     command: /start-celery-beat.sh

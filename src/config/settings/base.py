@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY")
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -188,7 +188,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -331,13 +330,13 @@ LOGGING = {
 # Loguru Logging configuration
 configure_logging(LOGGING, loguru_level="DEBUG" if DEBUG else "INFO")
 
-if not IS_TESTING:
-    # Redis
-    REDIS_HOST = config("REDIS_HOST")
-    REDIS_PORT = config("REDIS_PORT")
-    REDIS_DB = config("REDIS_DB", 0)
-    REDIS_PASSWORD = config("REDIS_PASSWORD", default="")
+# Redis
+REDIS_HOST = config("REDIS_HOST")
+REDIS_PORT = config("REDIS_PORT")
+REDIS_DB = config("REDIS_DB", 0)
+REDIS_PASSWORD = config("REDIS_PASSWORD", default="")
 
+if not IS_TESTING:
     # Cache
     CACHES = {
         "default": {
@@ -351,24 +350,14 @@ if not IS_TESTING:
         }
     }
 
-# RabbitMQ
-RABBITMQ_HOST = config("RABBITMQ_HOST")
-RABBITMQ_PORT = config("RABBITMQ_PORT", cast=int)
-RABBITMQ_USER = config("RABBITMQ_USER")
-RABBITMQ_PASSWORD = config("RABBITMQ_PASSWORD")
-RABBITMQ_VHOST = config("RABBITMQ_VHOST", default="/")
-
 # Celery
-# If ENV_CELERY_BEAT_SCHEDULE_FILENAME is set in the environment, use its value for CELERY_BEAT_SCHEDULE_FILENAME.
-# Otherwise, CELERY_BEAT_SCHEDULE_FILENAME will not be defined in the settings,
-# allowing Celery to use its internal default behavior (often creating 'celerybeat-schedule' in the CWD).
 _env_celery_beat_schedule_filename = config(
     "ENV_CELERY_BEAT_SCHEDULE_FILENAME", default=None
 )
 if _env_celery_beat_schedule_filename is not None:
     CELERY_BEAT_SCHEDULE_FILENAME = _env_celery_beat_schedule_filename
 
-CELERY_BROKER_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}"
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 CELERY_RESULT_BACKEND = "django-db"
 
 CELERY_ACCEPT_CONTENT = ["json"]

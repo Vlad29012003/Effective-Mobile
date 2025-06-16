@@ -353,6 +353,6 @@ local_*
 .git
 Dockerfile
 docker-compose*.yml
-infra/Dockerfile
+Dockerfile
 infra/helm
 !infra/scripts

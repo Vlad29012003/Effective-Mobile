@@ -23,6 +23,7 @@ dependencies = [
     "faker>=37.4.0",
     "gunicorn>=23.0.0",
     "loguru>=0.7.3",
+    "pillow>=11.2.1",
     "python-decouple>=3.8",
     "redis>=6.2.0",
     "sentry-sdk[django]>=2.30.0",
