@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from faker import Faker
-from .models import Post
+from apps.blog.models import Post
 
 User = get_user_model()
 
