@@ -9,7 +9,7 @@ User: settings.AUTH_USER_MODEL = get_user_model()
 
 
 class Post(models.Model):
-    author = models.ForeignKey(
+    author: User = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="blog_posts",
@@ -31,3 +31,21 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class PostImage(models.Model):
+    post: Post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name=_("Post"),
+    )
+    image = models.ImageField(_("Image"), upload_to="blog_images/")
+    caption = models.CharField(_("Caption"), max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = _("Post Image")
+        verbose_name_plural = _("Post Images")
+
+    def __str__(self):
+        return f"Image for {self.post.title}"
