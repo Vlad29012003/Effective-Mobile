@@ -21,7 +21,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis
+    image: redis:8.0-bookworm
     env_file:
       - ../../envs/dev.env
     environment:

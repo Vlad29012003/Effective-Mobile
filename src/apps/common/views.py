@@ -73,4 +73,6 @@ class HealthCheckView(APIView):
         safe_check("storage_s3", check_s3)
 
         status = "ok" if all(v == "ok" for v in checks.values()) else "error"
-        return Response({"status": status, "checks": checks})
+        return Response(
+            {"status": status, "checks": checks}, status=200 if status == "ok" else 503
+        )

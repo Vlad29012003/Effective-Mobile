@@ -83,20 +83,21 @@ deploy_app:dev:
       - api_failure
   timeout: 15m
 
-#deploy_nginx:dev:
-#  stage: deploy
-#  when: manual
-#  script:
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
-#  tags:
-#    - general-test-ci
-#  only:
-#    - dev
-#    - main
-#  retry:
-#    max: 2
-#    when:
-#      - runner_system_failure
-#      - api_failure
-#  timeout: 15m
+deploy_nginx:dev:
+  stage: deploy
+  when: manual
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
+  tags:
+    - general-test-ci
+  only:
+    - dev
+    - main
+    - feature/ci
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - api_failure
+  timeout: 15m

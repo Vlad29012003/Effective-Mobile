@@ -17,6 +17,8 @@ RUN adduser --disabled-password --gecos "" appuser
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
 COPY --from=builder /usr/local/bin /usr/local/bin
 
