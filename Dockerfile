@@ -7,7 +7,7 @@ COPY pyproject.toml uv.lock* ./
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 RUN /root/.local/bin/uv sync --frozen --no-dev --no-install-project --no-install-workspace --no-cache
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS dev
 
 ENV \
     PYTHONUNBUFFERED=1 \
