@@ -1,7 +1,7 @@
 version: '3.9'
 
 x-common: &common
-  image: ${IMAGE_TAG}
+  image: $IMAGE_TAG
   secrets:
     - django_secret_key
     - postgres_password
