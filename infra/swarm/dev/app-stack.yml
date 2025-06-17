@@ -1,7 +1,7 @@
 version: '3.9'
 
 x-common: &common
-  image: my-backend:latest #${IMAGE_TAG}
+  image: ${IMAGE_TAG}
   secrets:
     - django_secret_key
     - postgres_password
@@ -15,14 +15,13 @@ x-common: &common
 services:
   backend:
     <<: *common
-    build: ../../../infra
     ports:
       - "8000:8000"
     tty: true
-    healthcheck:
-      test: wget 0.0.0.0:8000/api/health/ -q -O - > /dev/null 2>&1
-      interval: 10s
-      retries: 20
+#    healthcheck:
+#      test: wget 0.0.0.0:8000/api/health/ -q -O - > /dev/null 2>&1
+#      interval: 10s
+#      retries: 20
     deploy:
       replicas: 1
       update_config:

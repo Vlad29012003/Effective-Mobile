@@ -1,0 +1,99 @@
+stages:
+#  - lint
+  - build
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+
+default:
+  interruptible: true
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - scheduler_failure
+      - unknown_failure
+  timeout: 10m
+  before_script:
+    - set -e
+    - export BASH_ENV="$HOME/.bashrc"
+
+build-image:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build --target prod -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+  tags:
+    - general-test-ci
+  only:
+    - main
+    - dev
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - api_failure
+      - job_execution_timeout
+  timeout: 20m
+
+deploy_statefull:dev:
+  stage: deploy
+  when: manual
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker stack deploy -c ./infra/swarm/dev/statefull-stack.yml --with-registry-auth project_stack
+    - docker stack deploy -c ./infra/swarm/dev/minio-stack.yml --with-registry-auth project_stack
+  tags:
+    - general-test-ci
+  only:
+    - dev
+    - main
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - api_failure
+  timeout: 15m
+
+
+deploy_app:dev:
+  stage: deploy
+  when: manual
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker stack deploy -c ./infra/swarm/dev/app-stack.yml --with-registry-auth project_stack
+  tags:
+    - general-test-ci
+  only:
+    - dev
+    - main
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - api_failure
+  timeout: 15m
+
+#deploy_nginx:dev:
+#  stage: deploy
+#  when: manual
+#  script:
+#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
+#  tags:
+#    - general-test-ci
+#  only:
+#    - dev
+#    - main
+#  retry:
+#    max: 2
+#    when:
+#      - runner_system_failure
+#      - api_failure
+#  timeout: 15m

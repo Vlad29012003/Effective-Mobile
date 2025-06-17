@@ -32,4 +32,4 @@ USER appuser
 EXPOSE 8080
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "-w", "1", "--threads", "8", "--timeout", "60", "--max-requests", "30000", "--max-requests-jitter", "10000", "config.wsgi:application"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "-w", "1", "--threads", "8", "--timeout", "60", "--max-requests", "30000", "--max-requests-jitter", "10000", "config.wsgi:application"]
