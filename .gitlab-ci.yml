@@ -33,6 +33,7 @@ build-image:
   only:
     - main
     - dev
+    - feature/ci
   retry:
     max: 2
     when:
@@ -54,6 +55,7 @@ deploy_statefull:dev:
   only:
     - dev
     - main
+    - feature/ci
   retry:
     max: 2
     when:
@@ -73,6 +75,7 @@ deploy_app:dev:
   only:
     - dev
     - main
+    - feature/ci
   retry:
     max: 2
     when:

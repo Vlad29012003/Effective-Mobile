@@ -29,7 +29,7 @@ COPY infra/envs/${STAGE}.env .env
 RUN mkdir staticfiles && chown -R appuser:appuser staticfiles/
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8000
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
 CMD ["gunicorn", "-b", "0.0.0.0:8000", "-w", "1", "--threads", "8", "--timeout", "60", "--max-requests", "30000", "--max-requests-jitter", "10000", "config.wsgi:application"]
