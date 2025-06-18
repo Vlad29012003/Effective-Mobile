@@ -1,16 +1,12 @@
-import logging
-
 import boto3
-import redis
 from django.conf import settings
 from django.core.cache import caches
 from django.db import connections
+from loguru import logger
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config.celery import app as celery_app
-
-logger = logging.getLogger(__name__)
 
 
 def trigger_error(request):
