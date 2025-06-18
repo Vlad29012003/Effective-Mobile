@@ -24,10 +24,6 @@ services:
     image: redis:8.0-bookworm
     env_file:
       - ../../envs/dev.env
-    environment:
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
-    secrets:
-      - redis_password
     ports:
       - "6379:6379"
     volumes:
@@ -50,6 +46,4 @@ networks:
 
 secrets:
   postgres_password:
-    external: true
-  redis_password:
     external: true
