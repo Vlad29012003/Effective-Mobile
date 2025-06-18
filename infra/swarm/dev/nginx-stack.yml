@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:1.28.0-bookworm
+    ports:
+      - "80:80"
+      # - "443:443"
+    volumes:
+      - nginx-conf:/etc/nginx/conf.d/
+      # - nginx-certs:/etc/nginx/certs
+    networks:
+      - backend-net
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/conf.d/default.conf
+      - source: nginx_main_conf
+        target: /etc/nginx/nginx.conf
+    depends_on:
+      - app
+
+configs:
+  nginx_conf:
+    file: ../../conf/nginx/default.conf
+  nginx_main_conf:
+    file: ../../conf/nginx/nginx.conf
+
+volumes:
+  nginx-conf:
+    external: true
+  nginx-certs:
+    external: true
+
+networks:
+  backend-net:
+    external: true

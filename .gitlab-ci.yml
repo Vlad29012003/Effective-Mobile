@@ -26,13 +26,14 @@ build-image:
     - docker:dind
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --target builder -t $IMAGE_TAG .
+    - docker build --target dev -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
   tags:
     - general-test-ci
   only:
     - main
     - dev
+    - feature/ci
   retry:
     max: 2
     when:
@@ -54,6 +55,7 @@ deploy_statefull:dev:
   only:
     - dev
     - main
+    - feature/ci
   retry:
     max: 2
     when:
@@ -73,6 +75,7 @@ deploy_app:dev:
   only:
     - dev
     - main
+    - feature/ci
   retry:
     max: 2
     when:
@@ -80,20 +83,21 @@ deploy_app:dev:
       - api_failure
   timeout: 15m
 
-#deploy_nginx:dev:
-#  stage: deploy
-#  when: manual
-#  script:
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
-#  tags:
-#    - general-test-ci
-#  only:
-#    - dev
-#    - main
-#  retry:
-#    max: 2
-#    when:
-#      - runner_system_failure
-#      - api_failure
-#  timeout: 15m
+deploy_nginx:dev:
+  stage: deploy
+  when: manual
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
+  tags:
+    - general-test-ci
+  only:
+    - dev
+    - main
+    - feature/ci
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - api_failure
+  timeout: 15m

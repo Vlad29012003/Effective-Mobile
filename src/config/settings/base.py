@@ -345,7 +345,7 @@ if not IS_TESTING:
             "OPTIONS": {
                 "DB": {REDIS_DB},
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "PASSWORD": config("REDIS_PASSWORD", default=""),
+                "PASSWORD": REDIS_PASSWORD,
             },
         }
     }

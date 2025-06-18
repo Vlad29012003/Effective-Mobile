@@ -4,11 +4,12 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.blog.manager import PostManager
+from apps.common.models import TimestampMixin
 
 User: settings.AUTH_USER_MODEL = get_user_model()
 
 
-class Post(models.Model):
+class Post(TimestampMixin):
     author: User = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -33,7 +34,7 @@ class Post(models.Model):
         return self.title
 
 
-class PostImage(models.Model):
+class PostImage(TimestampMixin):
     post: Post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
