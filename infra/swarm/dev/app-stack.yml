@@ -1,27 +1,30 @@
 version: '3.9'
 
 x-common: &common
-  image: ${IMAGE_TAG}
+  image: $IMAGE_TAG
   secrets:
     - django_secret_key
     - postgres_password
-    - redis_password
     - minio_password
   env_file:
     - ../../envs/dev.env
   networks:
     - backend-net
+  depends_on:
+    - db
+    - redis
 
 services:
   backend:
     <<: *common
+    command: ./start.sh
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     tty: true
-#    healthcheck:
-#      test: wget 0.0.0.0:8000/api/health/ -q -O - > /dev/null 2>&1
-#      interval: 10s
-#      retries: 20
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      retries: 20
     deploy:
       replicas: 1
       update_config:
@@ -38,37 +41,35 @@ services:
         max_attempts: 3
         window: 120s
 
-#  celery-worker:
-#    <<: *common
-#    command: ../../scripts/start-celery-worker.sh
-#    deploy:
-#      replicas: 2
-#      restart_policy:
-#        condition: on-failure
-#        delay: 5s
-#        max_attempts: 3
-#        window: 120s
-#    healthcheck:
-#      test: [ "CMD-SHELL", "ps aux | grep -q 'celery' || exit 1" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#
-#  celery-beat:
-#    <<: *common
-#    command: ../../scripts/start-celery-beat.sh
-#    deploy:
-#      replicas: 1
-#      restart_policy:
-#        condition: on-failure
-#        delay: 5s
-#        max_attempts: 3
-#        window: 120s
-#    healthcheck:
-#      test: [ "CMD-SHELL", "ps aux | grep -q 'celery beat' || exit 1" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
+  celery-worker:
+    <<: *common
+    command: ./start-celery-worker.sh
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: sh -c 'celery -A config inspect ping'
+      interval: 10s
+      retries: 20
+
+  celery-beat:
+    <<: *common
+    command: ./start-celery-beat.sh
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: sh -c 'celery -A config inspect ping'
+      interval: 10s
+      retries: 20
 
 networks:
   backend-net:
@@ -76,8 +77,6 @@ networks:
 
 secrets:
   postgres_password:
-    external: true
-  redis_password:
     external: true
   django_secret_key:
     external: true

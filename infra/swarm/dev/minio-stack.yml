@@ -4,8 +4,8 @@ services:
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     ports:
-      - '9002:9002'
-      - '9001:9001'
+      - '127.0.0.1:9002:9002'
+      - '127.0.0.1:9001:9001'
     secrets:
       - minio_password
     environment:
