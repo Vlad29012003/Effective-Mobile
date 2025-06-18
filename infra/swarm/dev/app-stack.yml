@@ -19,7 +19,7 @@ services:
     <<: *common
     command: ./start.sh
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     tty: true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
