@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.38.35",
     "celery>=5.5.3",
+    "decouplet>=0.1.1",
     "dishka>=1.6.0",
     "django>=5.2.3",
     "django-celery-beat>=2.8.1",
@@ -25,7 +26,6 @@ dependencies = [
     "loguru>=0.7.3",
     "pillow>=11.2.1",
     "psycopg2-binary>=2.9.10",
-    "python-decouple>=3.8",
     "redis>=6.2.0",
     "sentry-sdk[django]>=2.30.0",
 ]
