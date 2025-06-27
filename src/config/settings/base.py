@@ -14,11 +14,11 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
+from decouplet import config
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
 
 from config.additional.logging_setuper import configure_logging
-from utils.config_loader import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
