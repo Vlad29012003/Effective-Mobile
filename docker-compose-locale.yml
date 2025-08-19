@@ -3,7 +3,7 @@ version: '3.7'
 services:
   db:
     image: postgres:14
-    container_name: local_ov_admin_db
+    container_name: local_db
     env_file:
       - .env
     ports:
@@ -15,7 +15,7 @@ services:
 
   redis:
     image: redis:8
-    container_name: local_ov_admin_redis
+    container_name: local_redis
     env_file:
       - .env
     ports:
@@ -27,7 +27,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-    container_name: local_ov_admin_minio
+    container_name: local_minio
     env_file:
       - .env
     environment:
@@ -49,7 +49,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: local_ov_admin_rabbitmq
+    container_name: local_rabbitmq
     ports:
       - '5673:5672'     # AMQP port for Celery broker
       - '15673:15672'   # Management UI
