@@ -12,15 +12,31 @@ services:
     networks:
       - backend-net
     deploy:
-      replicas: 1
+      replicas: 2  # Multiple nginx instances for production
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.2'
       update_config:
         parallelism: 1
-        delay: 10s
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
         order: start-first
       restart_policy:
-        condition: any
-        delay: 5s
-        max_attempts: 3
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 300s
+      placement:
+        constraints:
+          - node.role == worker
     configs:
       - source: nginx_conf
         target: /etc/nginx/conf.d/default.conf
@@ -31,9 +47,9 @@ services:
 
 configs:
   nginx_conf:
-    file: ../../conf/nginx/dev/conf.d/default.conf
+    file: ../../conf/nginx/prod/conf.d/default.conf
   nginx_main_conf:
-    file: ../../conf/nginx/dev/nginx.conf
+    file: ../../conf/nginx/prod/nginx.conf
 
 volumes:
   nginx-conf:

@@ -1,0 +1,82 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    secrets:
+      - postgres_password
+    env_file:
+      - ../../envs/env.prod
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend-net
+    deploy:
+      replicas: 1  # Database should only have 1 replica
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.8'
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+        window: 300s
+      placement:
+        constraints:
+          - node.role == manager  # Database on manager node
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  redis:
+    image: redis:8.0-bookworm
+    env_file:
+      - ../../envs/env.prod
+    volumes:
+      - redis_data:/var/lib/redis/data/
+    networks:
+      - backend-net
+    deploy:
+      replicas: 1  # Redis should only have 1 replica
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 5
+        window: 300s
+      placement:
+        constraints:
+          - node.role == manager  # Redis on manager node
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  redis_data:
+
+networks:
+  backend-net:
+    external: true
+
+secrets:
+  postgres_password:
+    external: true

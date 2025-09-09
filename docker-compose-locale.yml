@@ -34,7 +34,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
     ports:
-      - "9000:9000"  # S3 API
+      - "9002:9000"  # S3 API
       - "9001:9001"  # веб-консоль
     volumes:
       - minio-data:/data

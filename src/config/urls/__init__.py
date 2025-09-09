@@ -26,7 +26,6 @@ from config.urls.api import api_urlpatterns
 urlpatterns = [
     path("", include("django_prometheus.urls")),
     path("admin/", admin.site.urls),
-    path("health/", HealthCheckView.as_view(), name="health-check"),
     path("api/v1/", include(api_urlpatterns)),
 ]
 

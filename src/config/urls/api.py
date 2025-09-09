@@ -7,4 +7,5 @@ api_urlpatterns = [
     path("schema/", include(swagger_urlpatterns)),
     path("token/", include(auth_urlpatterns)),
     path("blog/", include("apps.blog.urls")),
+    path("", include("apps.common.urls")),  # Permissions API
 ]

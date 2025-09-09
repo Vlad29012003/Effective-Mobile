@@ -1,5 +1,9 @@
 # Docker Swarm
 
+### Hints:
+
+- If you use configs, when you update the config or stack, you should update config's name in the stack file.
+
 ### Initializing a Docker Swarm
 
 ```bash
@@ -114,6 +118,7 @@ volumes:
 ```bash
   docker network rm backend-net
 ```
+
 ### To remove the volumes
 
 ```bash
