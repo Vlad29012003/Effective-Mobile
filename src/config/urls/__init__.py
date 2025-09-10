@@ -27,6 +27,7 @@ urlpatterns = [
     path("", include("django_prometheus.urls")),
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_urlpatterns)),
+    path("api/health/", HealthCheckView.as_view(), name="health-check"),
 ]
 
 if DEBUG:

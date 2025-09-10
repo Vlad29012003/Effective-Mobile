@@ -5,7 +5,7 @@ x-common: &common
   secrets:
     - django_secret_key
     - postgres_password
-    - minio_password
+    - minio_root_password
   env_file:
     - ../../envs/env.dev
   networks:
@@ -82,5 +82,5 @@ secrets:
     external: true
   django_secret_key:
     external: true
-  minio_password:
+  minio_root_password:
     external: true

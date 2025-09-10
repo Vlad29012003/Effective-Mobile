@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -87,9 +87,7 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         service.delete_post(instance, self.request.user)
 
-    @action(
-        detail=False, methods=["GET"], permission_classes=[IsAuthenticatedOrReadOnly]
-    )
+    @action(detail=False, methods=["GET"], permission_classes=[IsAuthenticated])
     @inject
     def my_posts(self, request: Request, service: FromDishka[PostService]) -> Response:
         """

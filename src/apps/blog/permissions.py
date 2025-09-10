@@ -1,4 +1,5 @@
-from enum import Enum
+from enum import Enum, auto
+from typing import Any
 
 from django.contrib.auth.models import User
 from rest_framework import permissions
@@ -6,38 +7,56 @@ from rest_framework import permissions
 from apps.common.permissions import PermissionChecker
 
 
-class BlogPermission(Enum):
-    VIEW_POST = "view_post"
-    CREATE_POST = "create_post"
-    EDIT_POST = "edit_post"
-    DELETE_POST = "delete_post"
-    PUBLISH_POST = "publish_post"
-    EDIT_ANY_POST = "edit_any_post"
-    DELETE_ANY_POST = "delete_any_post"
+class BlogPermission(str, Enum):
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[Any]
+    ) -> str:
+        return f"blog.{name.lower()}"
+
+    VIEW_POST = auto()
+    CREATE_POST = auto()
+    EDIT_POST = auto()
+    DELETE_POST = auto()
+    PUBLISH_POST = auto()
+    EDIT_ANY_POST = auto()
+    DELETE_ANY_POST = auto()
+
+
+PERMISSION_VERBOSE = {
+    BlogPermission.VIEW_POST: "Can view post",
+    BlogPermission.CREATE_POST: "Can create post",
+    BlogPermission.EDIT_POST: "Can edit post",
+    BlogPermission.DELETE_POST: "Can delete post",
+    BlogPermission.PUBLISH_POST: "Can publish post",
+    BlogPermission.EDIT_ANY_POST: "Can edit any post",
+    BlogPermission.DELETE_ANY_POST: "Can delete any post",
+}
+
+PERMISSIONS = [
+    (perm.value.replace("blog.", "", 1), PERMISSION_VERBOSE[perm])
+    for perm in BlogPermission
+]
 
 
 class BlogPermissionChecker(PermissionChecker):
     def check_permission(self, user: User, permission: str) -> bool:
         if not user or not user.is_authenticated:
-            return permission == BlogPermission.VIEW_POST.value
+            return permission == "view_post"
 
-        if permission == BlogPermission.VIEW_POST.value:
+        if permission == "view_post":
             return True
 
-        elif permission == BlogPermission.CREATE_POST.value:
+        elif permission == "create_post":
             return user.is_authenticated
 
-        elif permission in [
-            BlogPermission.EDIT_POST.value,
-            BlogPermission.DELETE_POST.value,
-            BlogPermission.PUBLISH_POST.value,
-        ]:
+        elif permission in ["edit_post", "delete_post", "publish_post"]:
             return user.is_authenticated
 
-        elif permission == BlogPermission.EDIT_ANY_POST.value:
+        elif permission == "edit_any_post":
             return user.is_staff or user.is_superuser
 
-        elif permission == BlogPermission.DELETE_ANY_POST.value:
+        elif permission == "delete_any_post":
             return user.is_superuser
 
         return False

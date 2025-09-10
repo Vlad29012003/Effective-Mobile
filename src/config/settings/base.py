@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY")
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -222,8 +222,8 @@ USE_S3 = config("USE_S3", default=False, cast=bool)
 
 if USE_S3:
     # Media files
-    MINIO_ACCESS_KEY = config("MINIO_USER")
-    MINIO_SECRET_KEY = config("MINIO_PASSWORD")
+    MINIO_ACCESS_KEY = config("MINIO_ROOT_USER")
+    MINIO_SECRET_KEY = config("MINIO_ROOT_PASSWORD")
     MINIO_BUCKET_NAME = config("MINIO_BUCKET_NAME")
     MINIO_HOST = config("MINIO_HOST", default="localhost")
     MINIO_PORT = config("MINIO_PORT", default=9000, cast=int)

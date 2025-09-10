@@ -91,6 +91,11 @@ volumes:
   docker network create --driver overlay --attachable backend-net
 ```
 
+### Build your images
+
+- Use Dockerfiles to build your application images.
+- Tag and push them to a Docker registry (Docker Hub, GitLab Container Registry, etc.).
+
 ### Run your stack
 
 - Before run you should build your images and push them to a registry. (Check `.gitlab-ci.yml` example)
