@@ -1,241 +1,163 @@
 """
-Система permissions с декларативной моделью (Capabilities API).
+Base permission system with modular architecture.
 """
 
+import importlib
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import Any
 
+from django.apps import apps
 from django.contrib.auth.models import User
 
 
-class Permission(Enum):
-    """Перечисление всех доступных разрешений в системе."""
-
-    # Blog permissions
-    BLOG_VIEW_POST = "blog.view_post"
-    BLOG_CREATE_POST = "blog.create_post"
-    BLOG_EDIT_POST = "blog.edit_post"
-    BLOG_DELETE_POST = "blog.delete_post"
-    BLOG_PUBLISH_POST = "blog.publish_post"
-    BLOG_EDIT_ANY_POST = "blog.edit_any_post"
-    BLOG_DELETE_ANY_POST = "blog.delete_any_post"
-
-    # User permissions
-    USER_VIEW_PROFILE = "user.view_profile"
-    USER_EDIT_PROFILE = "user.edit_profile"
-    USER_VIEW_ANY_PROFILE = "user.view_any_profile"
-
-    # Admin permissions
-    ADMIN_MANAGE_USERS = "admin.manage_users"
-    ADMIN_VIEW_ANALYTICS = "admin.view_analytics"
-
-
 class PermissionChecker(ABC):
-    """Абстрактный класс для проверки разрешений."""
+    """Abstract base class for permission checking."""
 
     @abstractmethod
-    def check_permission(
-        self, user: User, permission: str, context: dict[str, Any] = None
-    ) -> bool:
+    def check_permission(self, user: User, permission: str) -> bool:
         """
-        Проверить, есть ли у пользователя разрешение.
+        Check if user has permission.
 
         Args:
-            user: Пользователь
-            permission: Название разрешения
-            context: Дополнительный контекст (например, ID поста)
+            user: User
+            permission: Permission name (e.g., "view_post")
 
         Returns:
-            True если разрешение есть, False иначе
+            True if permission exists, False otherwise
         """
 
+    @abstractmethod
+    def get_supported_permissions(self) -> list[str]:
+        """
+        Get list of supported permissions.
 
-class BlogPermissionChecker(PermissionChecker):
-    """Проверка разрешений для блога."""
-
-    def check_permission(
-        self, user: User, permission: str, context: dict[str, Any] = None
-    ) -> bool:
-        if not user.is_authenticated:
-            return permission in [Permission.BLOG_VIEW_POST.value]
-
-        context = context or {}
-
-        if permission == Permission.BLOG_VIEW_POST.value:
-            return True
-
-        elif permission == Permission.BLOG_CREATE_POST.value:
-            return user.is_authenticated
-
-        elif permission == Permission.BLOG_EDIT_POST.value:
-            post_author_id = context.get("post_author_id")
-            return user.is_authenticated and (
-                user.id == post_author_id or user.is_superuser
-            )
-
-        elif permission == Permission.BLOG_DELETE_POST.value:
-            post_author_id = context.get("post_author_id")
-            return user.is_authenticated and (
-                user.id == post_author_id or user.is_superuser
-            )
-
-        elif permission == Permission.BLOG_PUBLISH_POST.value:
-            post_author_id = context.get("post_author_id")
-            return user.is_authenticated and (
-                user.id == post_author_id or user.is_superuser
-            )
-
-        elif permission == Permission.BLOG_EDIT_ANY_POST.value:
-            return user.is_staff or user.is_superuser
-
-        elif permission == Permission.BLOG_DELETE_ANY_POST.value:
-            return user.is_superuser
-
-        return False
-
-
-class UserPermissionChecker(PermissionChecker):
-    """Проверка разрешений для пользователей."""
-
-    def check_permission(
-        self, user: User, permission: str, context: dict[str, Any] = None
-    ) -> bool:
-        if not user.is_authenticated:
-            return False
-
-        context = context or {}
-
-        if permission == Permission.USER_VIEW_PROFILE.value:
-            return True
-
-        elif permission == Permission.USER_EDIT_PROFILE.value:
-            target_user_id = context.get("user_id")
-            return user.id == target_user_id or user.is_superuser
-
-        elif permission == Permission.USER_VIEW_ANY_PROFILE.value:
-            return user.is_staff or user.is_superuser
-
-        return False
-
-
-class AdminPermissionChecker(PermissionChecker):
-    """Проверка разрешений для администрирования."""
-
-    def check_permission(
-        self, user: User, permission: str, context: dict[str, Any] = None
-    ) -> bool:
-        if permission == Permission.ADMIN_MANAGE_USERS.value:
-            return user.is_superuser
-
-        elif permission == Permission.ADMIN_VIEW_ANALYTICS.value:
-            return user.is_staff or user.is_superuser
-
-        return False
+        Returns:
+            List of permission names
+        """
 
 
 class PermissionService:
-    """Сервис для проверки разрешений."""
+    """Service for permission checking with automatic checker discovery."""
 
     def __init__(self):
-        self.checkers = {
-            "blog": BlogPermissionChecker(),
-            "user": UserPermissionChecker(),
-            "admin": AdminPermissionChecker(),
-        }
+        self.checkers: dict[str, PermissionChecker] = {}
+        self._discover_checkers()
 
-    def check_permissions(
-        self, user: User, actions: list[str], context: dict[str, Any] = None
-    ) -> dict[str, bool]:
+    def _discover_checkers(self):
+        """Automatically finds and registers permission checkers from all apps."""
+        for app_config in apps.get_app_configs():
+            try:
+                # Try to import permissions module from each app
+                permissions_module = importlib.import_module(
+                    f"{app_config.name}.permissions"
+                )
+
+                # Look for PermissionChecker class in module
+                for attr_name in dir(permissions_module):
+                    attr = getattr(permissions_module, attr_name)
+
+                    # Check if this is a PermissionChecker subclass
+                    if (
+                        isinstance(attr, type)
+                        and issubclass(attr, PermissionChecker)
+                        and attr != PermissionChecker
+                    ):
+                        # Register checker
+                        app_name = app_config.name.split(".")[
+                            -1
+                        ]  # get last part (blog, user, etc.)
+                        self.checkers[app_name] = attr()
+
+            except (ImportError, AttributeError):
+                # If app has no permissions module or PermissionChecker - skip
+                continue
+
+    def check_permissions(self, user: User, actions: list[str]) -> dict[str, bool]:
         """
-        Проверить множество разрешений одновременно.
+        Check multiple permissions at once.
 
         Args:
-            user: Пользователь
-            actions: Список действий для проверки
-            context: Контекст для проверки
+            user: User
+            actions: List of actions to check (format: "app.permission")
 
         Returns:
-            Словарь {action: bool}
+            Dictionary {action: bool}
         """
         result = {}
 
         for action in actions:
-            result[action] = self.check_single_permission(user, action, context)
+            result[action] = self.check_single_permission(user, action)
 
         return result
 
-    def check_single_permission(
-        self, user: User, action: str, context: dict[str, Any] = None
-    ) -> bool:
+    def check_single_permission(self, user: User, action: str) -> bool:
         """
-        Проверить одно разрешение.
+        Check single permission.
 
         Args:
-            user: Пользователь
-            action: Действие для проверки (например, "blog.create_post")
-            context: Контекст для проверки
+            user: User
+            action: Action to check (e.g., "blog.view_post")
 
         Returns:
-            True если разрешение есть, False иначе
+            True if permission exists, False otherwise
         """
-        # Извлекаем модуль из действия (blog.create_post -> blog)
+        # Extract module from action (blog.view_post -> blog)
         parts = action.split(".", 1)
         if len(parts) != 2:
             return False
 
-        module, permission = parts
-        checker = self.checkers.get(module)
+        app_name, permission = parts
+        checker = self.checkers.get(app_name)
 
         if not checker:
             return False
 
-        return checker.check_permission(user, action, context)
+        return checker.check_permission(user, permission)
 
-    def has_permission(self, user: User, action: str, **context_kwargs) -> bool:
+    def has_permission(self, user: User, action: str) -> bool:
         """
-        Удобный метод для проверки одного разрешения.
+        Convenient method for checking single permission.
 
         Args:
-            user: Пользователь
-            action: Действие для проверки
-            **context_kwargs: Контекст как именованные параметры
+            user: User
+            action: Action to check
 
         Returns:
-            True если разрешение есть, False иначе
+            True if permission exists, False otherwise
         """
-        return self.check_single_permission(user, action, context_kwargs)
+        return self.check_single_permission(user, action)
+
+    def get_registered_checkers(self) -> dict[str, PermissionChecker]:
+        """Get list of registered checkers."""
+        return self.checkers.copy()
 
 
-# Глобальный экземпляр сервиса
+# Global service instance
 permission_service = PermissionService()
 
 
-def has_permission(user: User, action: str, **context) -> bool:
+def has_permission(user: User, action: str) -> bool:
     """
-    Глобальная функция для проверки разрешения.
+    Global function for permission checking.
 
     Args:
-        user: Пользователь
-        action: Действие для проверки
-        **context: Контекст
+        user: User
+        action: Action to check
 
     Returns:
-        True если разрешение есть, False иначе
+        True if permission exists, False otherwise
     """
-    return permission_service.has_permission(user, action, **context)
+    return permission_service.has_permission(user, action)
 
 
-def check_permissions(user: User, actions: list[str], **context) -> dict[str, bool]:
+def check_permissions(user: User, actions: list[str]) -> dict[str, bool]:
     """
-    Глобальная функция для проверки множества разрешений.
+    Global function for checking multiple permissions.
 
     Args:
-        user: Пользователь
-        actions: Список действий
-        **context: Контекст
+        user: User
+        actions: List of actions
 
     Returns:
-        Словарь {action: bool}
+        Dictionary {action: bool}
     """
-    return permission_service.check_permissions(user, actions, context)
+    return permission_service.check_permissions(user, actions)

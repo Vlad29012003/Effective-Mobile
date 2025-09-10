@@ -28,13 +28,10 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # Создание происходит через сервис в views
-        pass
-
-
-class PostPublishSerializer(serializers.Serializer):
-    """
-    Сериализатор для публикации/снятия с публикации постов.
-    """
-
-    pass  # Пустой сериализатор, только для документации
+        """
+        Создание поста через сервис происходит в views.
+        Этот метод не должен вызываться напрямую.
+        """
+        raise NotImplementedError(
+            "Post creation should be handled through PostService in views"
+        )

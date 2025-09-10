@@ -13,3 +13,15 @@ class BaseEnum(Enum):
 
     def __repr__(self):
         return self.value
+
+
+class AppPrefixes(BaseEnum):
+    """
+    Application prefixes for permission system.
+    Centralized storage to avoid hardcoded strings.
+    """
+
+    BLOG = "blog"
+    USER = "user"
+    ADMIN = "admin"
+    COMMON = "common"

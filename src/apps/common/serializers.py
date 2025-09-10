@@ -1,5 +1,5 @@
 """
-Сериализаторы для common приложения.
+Serializers for common application.
 """
 
 from rest_framework import serializers
@@ -7,24 +7,20 @@ from rest_framework import serializers
 
 class PermissionCheckRequestSerializer(serializers.Serializer):
     """
-    Сериализатор для запроса проверки разрешений.
+    Serializer for permission check request.
     """
 
     actions = serializers.ListField(
         child=serializers.CharField(max_length=100),
-        help_text="Список действий для проверки (например: ['blog.create_post', 'blog.edit_post'])",
-    )
-    context = serializers.DictField(
-        required=False,
-        help_text="Дополнительный контекст для проверки разрешений (например: {'post_author_id': 123})",
+        help_text="List of actions to check (e.g.: ['blog.create_post', 'blog.edit_post'])",
     )
 
     def validate_actions(self, value: list[str]) -> list[str]:
-        """Валидация списка действий."""
+        """Validation of actions list."""
         if not value:
             raise serializers.ValidationError("Actions list cannot be empty")
 
-        # Проверяем формат действий (должен быть module.action)
+        # Check actions format (should be module.action)
         for action in value:
             if "." not in action:
                 raise serializers.ValidationError(
@@ -36,16 +32,16 @@ class PermissionCheckRequestSerializer(serializers.Serializer):
 
 class PermissionCheckResponseSerializer(serializers.Serializer):
     """
-    Сериализатор для ответа проверки разрешений.
+    Serializer for permission check response.
 
-    Динамический сериализатор, который показывает пример ответа в документации.
+    Dynamic serializer that shows example response in documentation.
     """
 
     def to_representation(self, instance):
         """
-        Возвращает словарь {action: bool}.
+        Returns dictionary {action: bool}.
         """
-        # Это используется только для документации OpenAPI
+        # This is only used for OpenAPI documentation
         return {
             "blog.create_post": True,
             "blog.edit_post": False,
@@ -54,30 +50,10 @@ class PermissionCheckResponseSerializer(serializers.Serializer):
         }
 
 
-class PostContextSerializer(serializers.Serializer):
-    """
-    Контекст для проверки разрешений связанных с постами.
-    """
-
-    post_author_id = serializers.IntegerField(
-        required=False, help_text="ID автора поста для проверки разрешений"
-    )
-
-
-class UserContextSerializer(serializers.Serializer):
-    """
-    Контекст для проверки разрешений связанных с пользователями.
-    """
-
-    user_id = serializers.IntegerField(
-        required=False, help_text="ID пользователя для проверки разрешений"
-    )
-
-
 class HealthCheckResponseSerializer(serializers.Serializer):
     """
-    Сериализатор для ответа health check.
+    Serializer for health check response.
     """
 
-    status = serializers.CharField(help_text="Статус работы приложения")
-    service = serializers.CharField(help_text="Название сервиса")
+    status = serializers.CharField(help_text="Application status")
+    service = serializers.CharField(help_text="Service name")

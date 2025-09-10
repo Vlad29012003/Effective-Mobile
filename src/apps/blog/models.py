@@ -19,8 +19,6 @@ class Post(TimestampMixin):
     title = models.CharField(_("Title"), max_length=200)
     content = models.TextField(_("Content"))
     is_published = models.BooleanField(_("Is Published"), default=False)
-    created_at = models.DateTimeField(_("Date Created"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Date Updated"), auto_now=True)
 
     objects = models.Manager()
     published = PostManager()

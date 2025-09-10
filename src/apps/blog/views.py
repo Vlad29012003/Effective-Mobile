@@ -1,18 +1,18 @@
 from dishka import FromDishka
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import status, viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.common.permissions import Permission, has_permission
 from config.di.dishka import inject
 
 from .models import Post
 from .permissions import IsOwnerOrReadOnly
-from .serializers import PostPublishSerializer, PostSerializer
+from .schemas import PostPublishActionSchema, PostUnpublishActionSchema
+from .serializers import PostSerializer
 from .services import PostService
 
 
@@ -22,46 +22,34 @@ class PostViewSet(viewsets.ModelViewSet):
     API endpoint that allows posts to be viewed or edited.
     """
 
+    queryset = Post.objects.none()
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["author__username", "is_published"]
 
-    @inject
-    def get_queryset(self, service: FromDishka[PostService]):
+    def get_queryset(self):
         """
-        Возвращает посты в зависимости от действия и прав пользователя.
+        Returns posts based on action and user permissions.
+        Optimized method without duplicate database queries.
         """
-        # Проверка для генерации OpenAPI схемы
-        if getattr(self, "swagger_fake_view", False):
-            return Post.objects.none()
-
         if self.action == "list":
-            # Для списка показываем только опубликованные посты
-            return Post.objects.filter(
-                id__in=[p.id for p in service.get_published_posts()]
+            return Post.objects.filter(is_published=True).select_related("author")
+        if self.action == "my_posts":
+            return Post.objects.filter(author=self.request.user).select_related(
+                "author"
             )
-        elif self.action == "my_posts":
-            # Для my_posts показываем посты пользователя
-            if self.request.user.is_authenticated:
-                return Post.objects.filter(
-                    id__in=[p.id for p in service.get_user_posts(self.request.user)]
-                )
-            return Post.objects.none()
-        else:
-            # Для detail, update, delete - все посты (права проверим в сервисе)
-            return Post.objects.all().select_related("author")
 
-    def get_object(self) -> Post:
+        return Post.objects.all().select_related("author")
+
+    @inject
+    def get_object(self, service: FromDishka[PostService]) -> Post:
         """
-        Получить объект через сервис с проверкой разрешений.
+        Get object through service with permission checking.
         """
         obj = super().get_object()
 
-        # Для некоторых действий проверяем через сервис
         if self.action in ["retrieve", "update", "destroy"]:
-            service = PostService()
-            # Дополнительная проверка через сервис если нужно
             service.get_post_by_id(obj.id, self.request.user)
 
         return obj
@@ -71,7 +59,7 @@ class PostViewSet(viewsets.ModelViewSet):
         self, serializer: PostSerializer, service: FromDishka[PostService]
     ) -> None:
         """
-        Создание поста через сервис с проверкой разрешений.
+        Create post through service with permission checking.
         """
         post = service.create_post(
             author=self.request.user, data=serializer.validated_data
@@ -83,7 +71,7 @@ class PostViewSet(viewsets.ModelViewSet):
         self, serializer: PostSerializer, service: FromDishka[PostService]
     ) -> None:
         """
-        Обновление поста через сервис с проверкой разрешений.
+        Update post through service with permission checking.
         """
         post = service.update_post(
             post=serializer.instance,
@@ -95,39 +83,28 @@ class PostViewSet(viewsets.ModelViewSet):
     @inject
     def perform_destroy(self, instance: Post, service: FromDishka[PostService]) -> None:
         """
-        Удаление поста через сервис с проверкой разрешений.
+        Delete post through service with permission checking.
         """
         service.delete_post(instance, self.request.user)
 
-    @extend_schema(
-        methods=["GET"],
-        summary="Получить мои посты",
-        description="Возвращает посты текущего пользователя (включая черновики)",
-    )
     @action(
         detail=False, methods=["GET"], permission_classes=[IsAuthenticatedOrReadOnly]
     )
     @inject
     def my_posts(self, request: Request, service: FromDishka[PostService]) -> Response:
         """
-        Получить посты текущего пользователя.
+        List posts of the authenticated user.
         """
-        if not request.user.is_authenticated:
-            return Response(
-                {"error": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         posts = service.get_user_posts(request.user, include_drafts=True)
+        page = self.paginate_queryset(posts)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
-    @extend_schema(
-        methods=["POST"],
-        summary="Опубликовать пост",
-        description="Опубликовать существующий пост",
-        request=PostPublishSerializer,
-    )
+    @PostPublishActionSchema.get_schema()
     @action(
         detail=True, methods=["POST"], permission_classes=[IsAuthenticatedOrReadOnly]
     )
@@ -136,18 +113,14 @@ class PostViewSet(viewsets.ModelViewSet):
         self, request: Request, pk: str | None, service: FromDishka[PostService]
     ) -> Response:
         """
-        Опубликовать пост.
+        Publish a post.
         """
         post = self.get_object()
         updated_post = service.publish_post(post, request.user)
         serializer = self.get_serializer(updated_post)
         return Response(serializer.data)
 
-    @extend_schema(
-        methods=["POST"],
-        summary="Снять пост с публикации",
-        description="Снять пост с публикации (сделать черновиком)",
-    )
+    @PostUnpublishActionSchema.get_schema()
     @action(
         detail=True, methods=["POST"], permission_classes=[IsAuthenticatedOrReadOnly]
     )
@@ -156,41 +129,9 @@ class PostViewSet(viewsets.ModelViewSet):
         self, request: Request, pk: str | None, *, service: FromDishka[PostService]
     ) -> Response:
         """
-        Снять пост с публикации.
+        Unpublish a post.
         """
         post = self.get_object()
         updated_post = service.unpublish_post(post, request.user)
         serializer = self.get_serializer(updated_post)
         return Response(serializer.data)
-
-    @extend_schema(
-        methods=["GET"],
-        summary="Проверить разрешения для поста",
-        description="Возвращает разрешения текущего пользователя для данного поста",
-    )
-    @action(
-        detail=True, methods=["GET"], permission_classes=[IsAuthenticatedOrReadOnly]
-    )
-    def permissions(self, request: Request, pk: str | None) -> Response:
-        """
-        Получить разрешения для поста.
-        """
-        post = self.get_object()
-
-        if not request.user.is_authenticated:
-            permissions_to_check = [Permission.BLOG_VIEW_POST.value]
-        else:
-            permissions_to_check = [
-                Permission.BLOG_VIEW_POST.value,
-                Permission.BLOG_EDIT_POST.value,
-                Permission.BLOG_DELETE_POST.value,
-                Permission.BLOG_PUBLISH_POST.value,
-            ]
-
-        result = {}
-        for permission in permissions_to_check:
-            result[permission] = has_permission(
-                request.user, permission, post_author_id=post.author.id
-            )
-
-        return Response(result)

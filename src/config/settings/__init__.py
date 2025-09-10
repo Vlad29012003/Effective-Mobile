@@ -1,3 +1,4 @@
+# type: ignore
 from decouple import config as env_config
 
 RUN_MODE = env_config("RUN_MODE")
