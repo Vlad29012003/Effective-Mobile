@@ -7,17 +7,13 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.constants import AppPrefixes
 from apps.common.exceptions import (
     BusinessLogicException,
-    PermissionDeniedException,
     ResourceNotFoundException,
     ValidationException,
 )
-from apps.common.permissions import has_permission
 
 from .models import Post
-from .permissions import BlogPermission
 
 User: settings.AUTH_USER_MODEL = get_user_model()
 logger = logging.getLogger(__name__)
@@ -26,11 +22,6 @@ logger = logging.getLogger(__name__)
 class PostService:
     @staticmethod
     def get_published_posts() -> list[Post]:
-        logger.info(
-            "Fetching published posts",
-            extra={"action": "get_published_posts", "service": "PostService"},
-        )
-
         return list(Post.published.all().select_related("author"))
 
     @staticmethod
@@ -53,7 +44,7 @@ class PostService:
         return list(queryset)
 
     @staticmethod
-    def get_post_by_id(post_id: int, user: User = None) -> Post:
+    def get_post_by_id(post_id: int) -> Post:
         try:
             post = Post.objects.select_related("author").get(id=post_id)
         except Post.DoesNotExist:
@@ -67,31 +58,11 @@ class PostService:
             )
             raise ResourceNotFoundException(_("Post not found"))
 
-        # Check view permissions
-        if not post.is_published and user:
-            if not has_permission(
-                user, f"{AppPrefixes.BLOG}.{BlogPermission.VIEW_POST.value}"
-            ):
-                logger.warning(
-                    "Permission denied for viewing unpublished post",
-                    extra={
-                        "action": "get_post_by_id",
-                        "post_id": post_id,
-                        "user_id": user.id if user else None,
-                        "post_author_id": post.author.id,
-                        "service": "PostService",
-                    },
-                )
-                raise PermissionDeniedException(
-                    _("You don't have permission to view this post")
-                )
-
         logger.info(
             "Post retrieved successfully",
             extra={
                 "action": "get_post_by_id",
                 "post_id": post_id,
-                "user_id": user.id if user else None,
                 "service": "PostService",
             },
         )
@@ -101,21 +72,6 @@ class PostService:
     @staticmethod
     @transaction.atomic
     def create_post(author: User, data: dict[str, Any]) -> Post:
-        if not has_permission(
-            author, f"{AppPrefixes.BLOG}.{BlogPermission.CREATE_POST.value}"
-        ):
-            logger.warning(
-                "Permission denied for creating post",
-                extra={
-                    "action": "create_post",
-                    "user_id": author.id,
-                    "service": "PostService",
-                },
-            )
-            raise PermissionDeniedException(
-                _("You don't have permission to create posts")
-            )
-
         # Data validation
         if not data.get("title"):
             raise ValidationException(_("Title is required"))
@@ -159,36 +115,15 @@ class PostService:
     @staticmethod
     @transaction.atomic
     def update_post(post: Post, data: dict[str, Any], user: User) -> Post:
-        if not has_permission(
-            user, f"{AppPrefixes.BLOG}.{BlogPermission.EDIT_POST.value}"
-        ):
-            logger.warning(
-                "Permission denied for updating post",
-                extra={
-                    "action": "update_post",
-                    "post_id": post.id,
-                    "user_id": user.id,
-                    "post_author_id": post.author.id,
-                    "service": "PostService",
-                },
-            )
-            raise PermissionDeniedException(
-                _("You don't have permission to edit this post")
-            )
-
+        # Data validation
         if "title" in data and not data["title"]:
             raise ValidationException(_("Title cannot be empty"))
 
         if "content" in data and not data["content"]:
             raise ValidationException(_("Content cannot be empty"))
 
-        if data.get("is_published", False) and not post.is_published:
-            if not has_permission(
-                user, f"{AppPrefixes.BLOG}.{BlogPermission.PUBLISH_POST.value}"
-            ):
-                raise PermissionDeniedException(
-                    _("You don't have permission to publish this post")
-                )
+        # Additional business logic for publishing can be added here if needed
+        # but permissions are handled at the view level
 
         old_values = {}
         for key, value in data.items():
@@ -217,23 +152,6 @@ class PostService:
     @staticmethod
     @transaction.atomic
     def delete_post(post: Post, user: User) -> None:
-        if not has_permission(
-            user, f"{AppPrefixes.BLOG}.{BlogPermission.DELETE_POST.value}"
-        ):
-            logger.warning(
-                "Permission denied for deleting post",
-                extra={
-                    "action": "delete_post",
-                    "post_id": post.id,
-                    "user_id": user.id,
-                    "post_author_id": post.author.id,
-                    "service": "PostService",
-                },
-            )
-            raise PermissionDeniedException(
-                _("You don't have permission to delete this post")
-            )
-
         post_id = post.id
         post_title = post.title
 

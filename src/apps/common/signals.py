@@ -10,7 +10,7 @@ from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 from django.utils import timezone
 
-from .groups import GROUP_PERMISSIONS_MATRIX
+from apps.blog.groups import GROUP_PERMISSIONS_MATRIX
 
 logger = logging.getLogger(__name__)
 
