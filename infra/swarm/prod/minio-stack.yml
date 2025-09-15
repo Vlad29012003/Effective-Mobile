@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    ports:
+      - '9002:9000'
+      - '9001:9001'
+    secrets:
+      - minio_root_password
+    environment:
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    env_file:
+      - ../../envs/env.prod
+    volumes:
+      - minio-data:/data
+    networks:
+      - backend-net
+    command: server --address ":9002" --console-address ":9001" /data
+    deploy:
+      replicas: 1  # MinIO single instance
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 5
+        window: 300s
+      placement:
+        constraints:
+          - node.role == manager  # MinIO on manager for data persistence
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  minio-data:
+
+networks:
+  backend-net:
+    external: true
+
+secrets:
+  minio_root_password:
+    external: true

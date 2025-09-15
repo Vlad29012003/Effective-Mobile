@@ -31,9 +31,9 @@ services:
 
 configs:
   nginx_conf:
-    file: ../../conf/nginx/default.conf
+    file: ../../conf/nginx/dev/conf.d/default.conf
   nginx_main_conf:
-    file: ../../conf/nginx/nginx.conf
+    file: ../../conf/nginx/dev/nginx.conf
 
 volumes:
   nginx-conf:

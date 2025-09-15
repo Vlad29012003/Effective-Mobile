@@ -1,53 +1,163 @@
-from rest_framework.permissions import IsAuthenticated
+"""
+Base permission system with modular architecture.
+"""
+
+import importlib
+from abc import ABC, abstractmethod
+
+from django.apps import apps
+from django.contrib.auth.models import User
 
 
-class ActionPermissionBase(IsAuthenticated):
-    """Base permission class that checks for user action permission."""
+class PermissionChecker(ABC):
+    """Abstract base class for permission checking."""
 
-    def get_required_action(self, view):
-        required_action = getattr(view, "required_action", None)
-        return required_action
+    @abstractmethod
+    def check_permission(self, user: User, permission: str) -> bool:
+        """
+        Check if user has permission.
 
-    def get_app_label(self, view, obj=None):
-        if obj is not None:
-            return obj._meta.app_label  # noqa
+        Args:
+            user: User
+            permission: Permission name (e.g., "view_post")
 
-        if hasattr(view, "queryset") and hasattr(view.queryset, "model"):
-            return view.queryset.model._meta.app_label  # noqa
+        Returns:
+            True if permission exists, False otherwise
+        """
 
-        if hasattr(view, "serializer_class"):
-            model = getattr(view.serializer_class.Meta, "model", None)
-            if model:
-                return model._meta.app_label  # noqa
+    @abstractmethod
+    def get_supported_permissions(self) -> list[str]:
+        """
+        Get list of supported permissions.
 
-        return None
+        Returns:
+            List of permission names
+        """
 
-    def has_permission(self, request, view):
-        if not super().has_permission(request, view):
+
+class PermissionService:
+    """Service for permission checking with automatic checker discovery."""
+
+    def __init__(self):
+        self.checkers: dict[str, PermissionChecker] = {}
+        self._discover_checkers()
+
+    def _discover_checkers(self):
+        """Automatically finds and registers permission checkers from all apps."""
+        for app_config in apps.get_app_configs():
+            try:
+                # Try to import permissions module from each app
+                permissions_module = importlib.import_module(
+                    f"{app_config.name}.permissions"
+                )
+
+                # Look for PermissionChecker class in module
+                for attr_name in dir(permissions_module):
+                    attr = getattr(permissions_module, attr_name)
+
+                    # Check if this is a PermissionChecker subclass
+                    if (
+                        isinstance(attr, type)
+                        and issubclass(attr, PermissionChecker)
+                        and attr != PermissionChecker
+                    ):
+                        # Register checker
+                        app_name = app_config.name.split(".")[
+                            -1
+                        ]  # get last part (blog, user, etc.)
+                        self.checkers[app_name] = attr()
+
+            except (ImportError, AttributeError):
+                # If app has no permissions module or PermissionChecker - skip
+                continue
+
+    def check_permissions(self, user: User, actions: list[str]) -> dict[str, bool]:
+        """
+        Check multiple permissions at once.
+
+        Args:
+            user: User
+            actions: List of actions to check (format: "app.permission")
+
+        Returns:
+            Dictionary {action: bool}
+        """
+        result = {}
+
+        for action in actions:
+            result[action] = self.check_single_permission(user, action)
+
+        return result
+
+    def check_single_permission(self, user: User, action: str) -> bool:
+        """
+        Check single permission.
+
+        Args:
+            user: User
+            action: Action to check (e.g., "blog.view_post")
+
+        Returns:
+            True if permission exists, False otherwise
+        """
+        # Extract module from action (blog.view_post -> blog)
+        parts = action.split(".", 1)
+        if len(parts) != 2:
             return False
 
-        required_action = self.get_required_action(view)
-        if not required_action:
-            return True
+        app_name, permission = parts
+        checker = self.checkers.get(app_name)
 
-        app_label = self.get_app_label(view)
-        if not app_label:
+        if not checker:
             return False
 
-        perm_string = f"{app_label}.{required_action}"
-        return request.user.has_perm(perm_string)
+        return checker.check_permission(user, permission)
 
-    def has_object_permission(self, request, view, obj):
-        if not super().has_object_permission(request, view, obj):
-            return False
+    def has_permission(self, user: User, action: str) -> bool:
+        """
+        Convenient method for checking single permission.
 
-        required_action = self.get_required_action(view)
-        if not required_action:
-            return True
+        Args:
+            user: User
+            action: Action to check
 
-        app_label = self.get_app_label(view, obj)
-        if not app_label:
-            return False
+        Returns:
+            True if permission exists, False otherwise
+        """
+        return self.check_single_permission(user, action)
 
-        perm_string = f"{app_label}.{required_action}"
-        return request.user.has_perm(perm_string)
+    def get_registered_checkers(self) -> dict[str, PermissionChecker]:
+        """Get list of registered checkers."""
+        return self.checkers.copy()
+
+
+# Global service instance
+permission_service = PermissionService()
+
+
+def has_permission(user: User, action: str) -> bool:
+    """
+    Global function for permission checking.
+
+    Args:
+        user: User
+        action: Action to check
+
+    Returns:
+        True if permission exists, False otherwise
+    """
+    return permission_service.has_permission(user, action)
+
+
+def check_permissions(user: User, actions: list[str]) -> dict[str, bool]:
+    """
+    Global function for checking multiple permissions.
+
+    Args:
+        user: User
+        actions: List of actions
+
+    Returns:
+        Dictionary {action: bool}
+    """
+    return permission_service.check_permissions(user, actions)

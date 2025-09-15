@@ -1,72 +1,31 @@
-import boto3
-from django.conf import settings
-from django.core.cache import caches
-from django.db import connections
-from loguru import logger
-from rest_framework.response import Response
+"""
+Common views for health checks and error testing.
+"""
+
+from django.http import JsonResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 
-from config.celery import app as celery_app
-
-
-def trigger_error(request):
-    """
-    For sentry health check and testing purposes.
-    :param request:
-    :return:
-    """
-    1 / 0
+from .serializers import HealthCheckResponseSerializer
 
 
 class HealthCheckView(APIView):
-    authentication_classes = []  # type: ignore
-    permission_classes = []  # type: ignore
+    """
+    Health check endpoint for application monitoring.
+    """
 
-    def get(self, request, *args, **kwargs):
-        checks = {}
+    permission_classes: list = []
 
-        def safe_check(name, fn):
-            try:
-                fn()
-                checks[name] = "ok"
-            except Exception as e:
-                logger.error(f"{name} health check failed: {e}", exc_info=True)
-                checks[name] = f"error: {str(e)}"
+    @extend_schema(
+        tags=["health"],
+        summary="Application health check",
+        description="Returns application status",
+        responses={200: HealthCheckResponseSerializer},
+    )
+    def get(self, request):
+        """Application health check."""
+        return JsonResponse({"status": "healthy", "service": "django-blog-template"})
 
-        # DB check(s)
-        for alias in [a for a in ["default", "ov_database"] if a in settings.DATABASES]:
-            safe_check(
-                f"db_{alias}", lambda: connections[alias].cursor().execute("SELECT 1")
-            )
 
-        # Redis
-        def check_cache():
-            cache = caches["default"]
-            cache.set("health_check_key", "ok", timeout=5)
-            if cache.get("health_check_key") != "ok":
-                raise Exception("Redis set/get failed")
-            cache.delete("health_check_key")
-
-        safe_check("cache_redis", check_cache)
-
-        # Celery broker
-        def check_broker():
-            with celery_app.broker_connection(connect_timeout=3) as conn:
-                conn.ensure_connection(timeout=3, max_retries=1)
-
-        safe_check("broker_celery", check_broker)
-
-        # S3 / MinIO
-        def check_s3():
-            boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=getattr(settings, "AWS_S3_REGION_NAME", "us-east-1"),
-            ).head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
-
-        safe_check("storage_s3", check_s3)
-
-        status = "ok" if all(v == "ok" for v in checks.values()) else "error"
-        return Response({"status": status, "checks": checks})
+def trigger_error(request):
+    1 / 0

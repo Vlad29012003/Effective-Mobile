@@ -26,7 +26,7 @@ COPY src ./
 COPY infra/scripts ./scripts
 
 ARG STAGE=dev
-COPY infra/envs/${STAGE}.env .env
+COPY infra/envs/env.${STAGE} .env
 
 COPY infra/scripts/start.sh ./start.sh
 RUN chmod +x ./start.sh && chown appuser:appuser ./start.sh

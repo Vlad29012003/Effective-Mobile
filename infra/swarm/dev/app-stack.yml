@@ -5,9 +5,9 @@ x-common: &common
   secrets:
     - django_secret_key
     - postgres_password
-    - minio_password
+    - minio_root_password
   env_file:
-    - ../../envs/dev.env
+    - ../../envs/env.dev
   networks:
     - backend-net
   depends_on:
@@ -22,9 +22,11 @@ services:
       - "127.0.0.1:8000:8000"
     tty: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 10s
-      retries: 20
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     deploy:
       replicas: 1
       update_config:
@@ -80,5 +82,5 @@ secrets:
     external: true
   django_secret_key:
     external: true
-  minio_password:
+  minio_root_password:
     external: true

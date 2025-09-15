@@ -17,8 +17,7 @@ from pathlib import Path
 from decouplet import config
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
-
-from config.additional.logging_setuper import configure_logging
+from logify.django import get_logging_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -79,7 +78,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "config.middlewares.logging.LoggingMiddleware",
+    "logify.django.LogifyMiddleware",  # Optional: Uncomment to enable Logify middleware
+    # "config.middlewares.logging.LoggingMiddleware",  # Customized from logify.django.LogifyMiddleware
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
@@ -222,8 +222,8 @@ USE_S3 = config("USE_S3", default=False, cast=bool)
 
 if USE_S3:
     # Media files
-    MINIO_ACCESS_KEY = config("MINIO_USER")
-    MINIO_SECRET_KEY = config("MINIO_PASSWORD")
+    MINIO_ACCESS_KEY = config("MINIO_ROOT_USER")
+    MINIO_SECRET_KEY = config("MINIO_ROOT_PASSWORD")
     MINIO_BUCKET_NAME = config("MINIO_BUCKET_NAME")
     MINIO_HOST = config("MINIO_HOST", default="localhost")
     MINIO_PORT = config("MINIO_PORT", default=9000, cast=int)
@@ -290,47 +290,22 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "PAGE_SIZE": 100,
-    # "EXCEPTION_HANDLER": "config.additional.custom_exception_handler",
+    "EXCEPTION_HANDLER": "config.additional.error_handling.custom_exception_handler",
     "UPLOADED_FILES_USE_URL": False,
 }
 
 # Logging
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "class": "logging.StreamHandler",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "DEBUG" if DEBUG else "INFO",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "WARNING",
-            "propagate": False,
-        },
-        "botocore": {
-            "handlers": ["console"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-        "boto3": {
-            "handlers": ["console"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-    },
-}
+LOGGING = get_logging_config(
+    service_name="django-json-logify",
+    level="INFO" if not DEBUG else "DEBUG",
+    max_string_length=200,
+    sensitive_fields=["password", "passwd"],
+    ignore_paths=[
+        "/api/v1/health/",
+        "/api/v1/schema/",
+    ],
+)
 
-# Loguru Logging configuration
-configure_logging(LOGGING, loguru_level="DEBUG" if DEBUG else "INFO")
-
-# Redis
 REDIS_HOST = config("REDIS_HOST")
 REDIS_PORT = config("REDIS_PORT")
 REDIS_DB = config("REDIS_DB", 0)
@@ -365,21 +340,5 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_CONTENT_ENCODING = "utf-8"
 
-# Sentry
-SENTRY_DSN = config("SENTRY_DSN", default=None)
-
-if SENTRY_DSN and not IS_TESTING:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-
-    SENTRY_ENVIRONMENT = config("SENTRY_ENVIRONMENT")
-    SENTRY_RELEASE = config("SENTRY_RELEASE")
-
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[DjangoIntegration()],
-        traces_sample_rate=0.1,
-        send_default_pii=True,
-        environment=SENTRY_ENVIRONMENT,
-        release=SENTRY_RELEASE,
-    )
+# Sentry (Added in dev and prod settings)
+SENTRY_DSN = None  # For config purposes, set in environment variables

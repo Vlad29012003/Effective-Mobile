@@ -1,0 +1,127 @@
+version: '3.9'
+
+x-common: &common
+  image: $IMAGE_TAG
+  secrets:
+    - django_secret_key
+    - postgres_password
+    - minio_root_password
+    - sentry_dsn
+  env_file:
+    - ../../envs/env.prod
+  networks:
+    - backend-net
+  depends_on:
+    - db
+    - redis
+
+services:
+  backend:
+    <<: *common
+    command: ./start.sh
+    ports:
+      - "127.0.0.1:8000:8000"
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 2  # Increased for production
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        delay: 30s  # Longer delay for prod
+        monitor: 60s  # Monitor for 60s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+        monitor: 30s
+      restart_policy:
+        condition: on-failure  # Only restart on failure in prod
+        delay: 10s  # Longer delay
+        max_attempts: 5  # More attempts
+        window: 300s  # Longer window
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - "spread=node.labels.zone"
+
+  celery-worker:
+    <<: *common
+    command: ./start-celery-worker.sh
+    deploy:
+      replicas: 3  # More workers for production
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.8'
+        reservations:
+          memory: 384M
+          cpus: '0.4'
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 300s
+      placement:
+        constraints:
+          - node.role == worker
+    healthcheck:
+      test: sh -c 'celery -A config inspect ping'
+      interval: 30s  # Longer interval for prod
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  celery-beat:
+    <<: *common
+    command: ./start-celery-beat.sh
+    deploy:
+      replicas: 1  # Beat should only have 1 replica
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+      restart_policy:
+        condition: on-failure
+        delay: 15s  # Longer delay for beat
+        max_attempts: 5
+        window: 300s
+      placement:
+        constraints:
+          - node.role == manager  # Beat runs on manager
+    healthcheck:
+      test: sh -c 'celery -A config inspect ping'
+      interval: 60s  # Less frequent checks for beat
+      timeout: 15s
+      retries: 3
+      start_period: 90s
+
+networks:
+  backend-net:
+    external: true
+
+secrets:
+  postgres_password:
+    external: true
+  django_secret_key:
+    external: true
+  minio_root_password:
+    external: true
+  sentry_dsn:
+    external: true
