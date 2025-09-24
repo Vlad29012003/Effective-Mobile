@@ -5,5 +5,19 @@ from apps.common.mixins.model_mixins import (
     TimestampHistoryMixin,
     TimestampMixin,
 )
-from apps.common.mixins.test_mixins import BaseTestCase, SessionAuthTestCase
+from apps.common.mixins.test_mixins import BaseTestCase, SessionAuthMixin, CleanMediaMixin, CleanMinioMixin
 from apps.common.mixins.view_mixins import RequiredActionMixin
+
+__all__ = [
+    "SoftDeleteAdminMixin",
+    "WarnUnsavedFormMixin",
+    "HistoryInDefaultDBBase",
+    "HistoryMixin",
+    "TimestampHistoryMixin",
+    "TimestampMixin",
+    "BaseTestCase",
+    "SessionAuthMixin",
+    "CleanMediaMixin",
+    "CleanMinioMixin",
+    "RequiredActionMixin",
+]
