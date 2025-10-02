@@ -1,15 +1,17 @@
 import random
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+from django.forms.models import model_to_dict
 from django.http import HttpResponse
 from django.urls import reverse
-from django.forms.models import model_to_dict
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework import status
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.response import Response
 
 from apps.blog.models import Post
+from apps.blog.permissions import BlogPermission
 from apps.blog.serializers import PostSerializer
+from apps.common.constants import AppPrefixes
 from apps.common.factories import PostFactory
 from apps.common.mixins import BaseTestCase, SessionAuthMixin
 
@@ -141,7 +143,7 @@ class PostRetrieveTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-    def test_retrieve_not_published(self) -> None:
+    def test_retrieve_unpublished(self) -> None:
         """
         Test that retrieving an unpublished post returns a 403 Forbidden response.
         """
@@ -152,11 +154,8 @@ class PostRetrieveTest(SessionAuthMixin, BaseTestCase):
 
         self.check_403_response(response)
 
-        expected_response: Response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to view this post",
-            errors=[],
-        )
+        expected_response: Response = self.response_builder.build_403_response(PermissionDenied(detail="You don't have permission to view this post"))
+
         self.assertResponseEqual(response, expected_response)
 
     def test_retrieve_nonexistent(self) -> None:
@@ -184,12 +183,13 @@ class PostRetrieveTest(SessionAuthMixin, BaseTestCase):
 
 
 class PostCreateTest(SessionAuthMixin, BaseTestCase):
-    @patch("apps.blog.services.has_permission")
+    @patch("apps.blog.permissions.has_permission")
     def test_create(self, mock_has_permission: MagicMock) -> None:
         """
         Test that an authenticated user can create a post with proper permissions.
         """
         mock_has_permission.return_value = True
+
         post_data = model_to_dict(PostFactory.build(), exclude=["author", "id"])
 
         response: HttpResponse = self.client.post(
@@ -215,7 +215,7 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
 
         mock_has_permission.assert_called_once()
 
-    @patch("apps.blog.services.has_permission")
+    @patch("apps.blog.permissions.has_permission")
     def test_create_without_permissions(self, mock_has_permission: MagicMock) -> None:
         """
         Test that creating a post fails when user lacks the required permissions.
@@ -228,10 +228,8 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
         )
         self.check_403_response(response)
 
-        expected_response: Response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to create posts",
-            errors=[],
+        expected_response: Response = self.response_builder.build_403_response(
+            PermissionDenied(detail="You don't have permission to create posts")
         )
         self.assertResponseEqual(response, expected_response)
 
@@ -289,15 +287,16 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
 
 
 class PostUpdateTest(SessionAuthMixin, BaseTestCase):
-    @patch("apps.blog.services.has_permission")
+
+    @patch("apps.blog.permissions.has_permission")
     def test_update(self, mock_has_permission: MagicMock) -> None:
         """
         Test that a user can update their own post with proper permissions.
         """
+        mock_has_permission.return_value = True
+
         post: Post = PostFactory.create(author=self.user)
         data_to_update = model_to_dict(PostFactory.build(), exclude=["author", "id"])
-
-        mock_has_permission.return_value = True
 
         response: HttpResponse = self.client.put(
             path=reverse("post-detail", kwargs={"pk": post.id}), data=data_to_update
@@ -311,7 +310,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
             self.assertEqual(
                 getattr(post, key),
                 value,
-                f"Post attribute '{key}' should be updated to '{value}'",
+                f"Post attribute '{key}' should be updated to '{value}'; current: ",
             )
 
         serializer = PostSerializer(instance=post)
@@ -320,17 +319,20 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-    @patch("apps.blog.services.has_permission")
+        mock_has_permission.assert_called_once()
+
+
+    @patch("apps.blog.permissions.has_permission")
     def test_update_without_permission(self, mock_has_permission: MagicMock) -> None:
         """
         Test that updating a post fails when user lacks the required permissions.
         """
+        mock_has_permission.return_value = False
+
         post: Post = PostFactory.create(author=self.user, is_published=True)
         data_to_update = model_to_dict(
             PostFactory.build(is_published=False), exclude=["author", "id"]
         )
-
-        mock_has_permission.side_effect = (False, False)
 
         response: HttpResponse = self.client.put(
             path=reverse("post-detail", kwargs={"pk": post.id}), data=data_to_update
@@ -345,12 +347,13 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
                 f"Post attribute '{key}' should not be updated to '{value}' without permission",
             )
 
-        expected_response: Response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to edit this post",
-            errors=[],
+        expected_response: Response = self.response_builder.build_403_response(
+            PermissionDenied(detail="You don't have permission to edit this post")
         )
         self.assertResponseEqual(response, expected_response)
+
+        mock_has_permission.assert_called_once()
+
 
     def test_update_nonexistent(self) -> None:
         """
@@ -391,7 +394,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
             )
 
         expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied()
+            PermissionDenied("You don't have permission to edit this post")
         )
         self.assertResponseEqual(response, expected_response)
 
@@ -401,14 +404,14 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
 
 
 class PostDeleteTest(SessionAuthMixin, BaseTestCase):
-    @patch("apps.blog.services.has_permission")
+    @patch("apps.blog.permissions.has_permission")
     def test_delete(self, mock_has_permission: MagicMock) -> None:
         """
         Test that a user can delete their own post with proper permissions.
         """
-        post: Post = PostFactory.create(author=self.user)
-
         mock_has_permission.return_value = True
+
+        post: Post = PostFactory.create(author=self.user)
 
         response: HttpResponse = self.client.delete(
             path=reverse("post-detail", kwargs={"pk": post.id})
@@ -420,14 +423,17 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
             "Post should be deleted from the database",
         )
 
-    @patch("apps.blog.services.has_permission")
+        mock_has_permission.assert_called_once()
+
+
+    @patch("apps.blog.permissions.has_permission")
     def test_delete_without_permission(self, mock_has_permission: MagicMock) -> None:
         """
         Test that deleting a post fails when user lacks the required permissions.
         """
-        post: Post = PostFactory.create(author=self.user, is_published=True)
-
         mock_has_permission.return_value = False
+
+        post: Post = PostFactory.create(author=self.user, is_published=True)
 
         response: HttpResponse = self.client.delete(
             path=reverse("post-detail", kwargs={"pk": post.id})
@@ -439,12 +445,13 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
             "Post should still exist in the database when deletion is not allowed",
         )
 
-        expected_response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to delete this post",
-            errors=[],
+        expected_response = self.response_builder.build_403_response(
+            PermissionDenied(detail="You don't have permission to delete this post")
         )
         self.assertResponseEqual(response, expected_response)
+
+        mock_has_permission.assert_called_once()
+
 
     def test_delete_foreign(self):
         """
@@ -463,7 +470,7 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
         )
 
         expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied()
+            PermissionDenied(detail="You don't have permission to delete this post")
         )
         self.assertResponseEqual(response, expected_response)
 
@@ -487,14 +494,14 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
 
 
 class PostPublishTest(SessionAuthMixin, BaseTestCase):
-    @patch("apps.blog.services.has_permission")
+    @patch("apps.blog.permissions.has_permission")
     def test_publish(self, mock_has_permission: MagicMock):
         """
         Test that a user can publish their unpublished post with proper permissions.
         """
-        post: Post = PostFactory.create(author=self.user, is_published=False)
+        mock_has_permission.return_value = True
 
-        mock_has_permission.side_effect = [True, True]
+        post: Post = PostFactory.create(author=self.user, is_published=False)
 
         response: HttpResponse = self.client.post(
             path=reverse("post-publish", kwargs={"pk": post.id})
@@ -513,10 +520,15 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-    def test_publish_published(self):
+        mock_has_permission.assert_called_once()
+
+    @patch("apps.blog.permissions.has_permission")
+    def test_publish_published(self, mock_has_permission: MagicMock):
         """
         Test that publishing an already published post returns an error.
         """
+        mock_has_permission.return_value = True
+
         post: Post = PostFactory.create(author=self.user, is_published=True)
 
         response: HttpResponse = self.client.post(
@@ -537,56 +549,40 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-    @patch("apps.blog.services.has_permission")
-    def test_publish_without_edit_permission(self, mock_has_permission: MagicMock):
-        """
-        Test that publishing a post fails when user lacks edit permissions.
-        """
-        post: Post = PostFactory.create(author=self.user, is_published=False)
+        mock_has_permission.assert_called_once()
 
-        mock_has_permission.side_effect = [False, False]
-
-        response: HttpResponse = self.client.post(
-            path=reverse("post-publish", kwargs={"pk": post.id})
-        )
-        self.check_403_response(response)
-
-        expected_response: Response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to edit this post",
-            errors=[],
-        )
-        self.assertResponseEqual(response, expected_response)
-
-    @patch("apps.blog.services.has_permission")
+    @patch("apps.blog.permissions.has_permission")
     def test_publish_without_publish_permission(self, mock_has_permission: MagicMock):
         """
         Test that publishing a post fails when user lacks publish permissions.
         """
         post: Post = PostFactory.create(author=self.user, is_published=False)
 
-        mock_has_permission.side_effect = [True, False]
+        mock_has_permission.return_value = False
 
         response: HttpResponse = self.client.post(
             path=reverse("post-publish", kwargs={"pk": post.id})
         )
         self.check_403_response(response)
 
-        expected_response: Response = self.response_builder.build_error(
-            status=status.HTTP_403_FORBIDDEN,
-            message="You don't have permission to publish this post",
-            errors=[],
+        expected_response: Response = self.response_builder.build_403_response(
+            PermissionDenied(
+                "You don't have permission to publish this post"
+            )
         )
+        
         self.assertResponseEqual(response, expected_response)
 
-    @patch("apps.blog.services.has_permission")
+        mock_has_permission.assert_called_once()
+
+    @patch("apps.blog.permissions.has_permission")
     def test_unpublish(self, mock_has_permission: MagicMock):
         """
         Test that a user can unpublish their published post with proper permissions.
         """
         post: Post = PostFactory.create(author=self.user, is_published=True)
 
-        mock_has_permission.side_effect = [True, True]
+        mock_has_permission.return_value = True
 
         response: HttpResponse = self.client.post(
             path=reverse("post-unpublish", kwargs={"pk": post.id})
@@ -606,11 +602,16 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-    def test_unpublish_unpublished(self):
+        mock_has_permission.assert_called_once()
+
+    @patch("apps.blog.permissions.has_permission")
+    def test_unpublish_unpublished(self, mock_has_permission: MagicMock):
         """
         Test that unpublishing an already unpublished post returns an error.
         """
         post: Post = PostFactory.create(author=self.user, is_published=False)
+
+        mock_has_permission.return_value = True
 
         response: HttpResponse = self.client.post(
             path=reverse("post-unpublish", kwargs={"pk": post.id})
@@ -630,6 +631,8 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
             errors=[],
         )
         self.assertResponseEqual(response, expected_response)
+
+        mock_has_permission.assert_called_once()
 
     def tearDown(self):
         Post.objects.all().delete()
