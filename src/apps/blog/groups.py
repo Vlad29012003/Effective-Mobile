@@ -1,10 +1,9 @@
 """
-Конфигурация групп пользователей и их разрешений.
+Конфигурация групп пользователей и их разрешений для блога.
 """
 
-from apps.blog.permissions import BlogPermission
+from .permissions import BlogPermission
 
-# Определение групп и их разрешений
 GROUP_PERMISSIONS_MATRIX = {
     "Bloggers": [
         BlogPermission.VIEW_POST.value,
