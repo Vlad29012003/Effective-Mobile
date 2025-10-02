@@ -3,8 +3,8 @@ Middleware for standardized error handling.
 """
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.http import JsonResponse
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.exceptions import (
     AuthenticationFailed,
     MethodNotAllowed,
@@ -84,7 +84,7 @@ def custom_exception_handler(exc, context):
 def _handle_validation_error(exc):
     """Convert DRF ValidationError to 422 standard format."""
     standard_exc = convert_drf_validation_error(exc)
-    return JsonResponse(
+    return Response(
         {
             "message": standard_exc.message,
             "errors": [error.to_dict() for error in standard_exc.errors],
@@ -95,7 +95,7 @@ def _handle_validation_error(exc):
 
 def _handle_permission_denied(exc):
     """Convert PermissionDenied to standard format."""
-    return JsonResponse(
+    return Response(
         {
             "message": "Permission denied",
             "errors": [
@@ -115,7 +115,7 @@ def _handle_permission_denied(exc):
 
 def _handle_not_found(exc):
     """Convert NotFound to standard format."""
-    return JsonResponse(
+    return Response(
         {
             "message": "Resource not found",
             "errors": [
@@ -135,7 +135,7 @@ def _handle_not_found(exc):
 
 def _handle_authentication_failed(exc):
     """Convert AuthenticationFailed to standard format."""
-    return JsonResponse(
+    return Response(
         {
             "message": "Authentication failed",
             "errors": [
@@ -155,7 +155,7 @@ def _handle_authentication_failed(exc):
 
 def _handle_method_not_allowed(exc):
     """Convert MethodNotAllowed to standard format."""
-    return JsonResponse(
+    return Response(
         {
             "message": "Method not allowed",
             "errors": [
@@ -175,7 +175,7 @@ def _handle_method_not_allowed(exc):
 
 def _handle_throttled(exc):
     """Convert Throttled to standard format."""
-    return JsonResponse(
+    return Response(
         {
             "message": "Request throttled",
             "errors": [
@@ -222,7 +222,7 @@ def _handle_django_validation_error(exc):
                 ).to_dict()
             )
 
-    return JsonResponse(
+    return Response(
         {"message": "Validation failed", "errors": errors},
         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
     )
@@ -230,7 +230,7 @@ def _handle_django_validation_error(exc):
 
 def _handle_standard_exception(exc):
     """Handle our custom StandardAPIException."""
-    return JsonResponse(
+    return Response(
         {"message": exc.message, "errors": [error.to_dict() for error in exc.errors]},
         status=exc.status_code,
     )

@@ -48,11 +48,11 @@ preload_app = True // Preload the application code before forking workers
   ```
 - **Create superuser:**
   ```bash
-    make createsuperuser
+    make superuser
   ```
 - **Collect static files:**
   ```bash
-  make collectstatic
+  make static
   ```
 
 ## Django Project Structure
