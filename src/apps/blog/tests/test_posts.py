@@ -310,7 +310,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
             self.assertEqual(
                 getattr(post, key),
                 value,
-                f"Post attribute '{key}' should be updated to '{value}'; current: ",
+                f"Post attribute '{key}' should be updated to '{value}'; current: {getattr(post, key)}",
             )
 
         serializer = PostSerializer(instance=post)
