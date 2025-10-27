@@ -3,8 +3,8 @@ Integration tests for API error handling.
 """
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
-from django.urls import include, path
+from django.test import override_settings
+from django.urls import path
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -13,8 +13,6 @@ from rest_framework.views import APIView
 
 from apps.common.exceptions import (
     BusinessLogicException,
-    ErrorCodes,
-    ResourceNotFoundException,
     StandardError,
     ValidationException,
 )
@@ -72,18 +70,9 @@ class APIErrorIntegrationTestCase(APITestCase):
 
     def test_drf_validation_error_returns_422(self):
         """Test that DRF ValidationError returns 422 with standard format."""
-        from django.test import override_settings
-        from django.urls import path
-
         with override_settings(ROOT_URLCONF="tests.test_api_error_integration"):
-            # Add test URL temporarily
-            from django.conf.urls import url
-            from django.urls import re_path
-
             # Create a temporary test URL
-            response = self.client.post(
-                "/test-errors/", {"error_type": "validation"}, format="json"
-            )
+            response = self.client.post("/test-errors/", {"error_type": "validation"}, format="json")
 
         # Should return 422 instead of 400
         self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -106,9 +95,7 @@ class APIErrorIntegrationTestCase(APITestCase):
     def test_permission_denied_returns_403_standard_format(self):
         """Test that PermissionDenied returns 403 with standard format."""
         with override_settings(ROOT_URLCONF="tests.test_api_error_integration"):
-            response = self.client.post(
-                "/test-errors/", {"error_type": "permission"}, format="json"
-            )
+            response = self.client.post("/test-errors/", {"error_type": "permission"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -123,9 +110,7 @@ class APIErrorIntegrationTestCase(APITestCase):
     def test_not_found_returns_404_standard_format(self):
         """Test that NotFound returns 404 with standard format."""
         with override_settings(ROOT_URLCONF="tests.test_api_error_integration"):
-            response = self.client.post(
-                "/test-errors/", {"error_type": "not_found"}, format="json"
-            )
+            response = self.client.post("/test-errors/", {"error_type": "not_found"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -139,9 +124,7 @@ class APIErrorIntegrationTestCase(APITestCase):
     def test_custom_validation_exception(self):
         """Test that custom ValidationException works correctly."""
         with override_settings(ROOT_URLCONF="tests.test_api_error_integration"):
-            response = self.client.post(
-                "/test-errors/", {"error_type": "custom_validation"}, format="json"
-            )
+            response = self.client.post("/test-errors/", {"error_type": "custom_validation"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -149,12 +132,8 @@ class APIErrorIntegrationTestCase(APITestCase):
         self.assertEqual(response.data["message"], "Custom validation failed")
         self.assertEqual(len(response.data["errors"]), 2)
 
-        email_error = next(
-            e for e in response.data["errors"] if e.get("attr") == "email"
-        )
-        phone_error = next(
-            e for e in response.data["errors"] if e.get("attr") == "phone"
-        )
+        email_error = next(e for e in response.data["errors"] if e.get("attr") == "email")
+        phone_error = next(e for e in response.data["errors"] if e.get("attr") == "phone")
 
         self.assertEqual(email_error["code"], "required")
         self.assertEqual(phone_error["code"], "invalid")
@@ -162,9 +141,7 @@ class APIErrorIntegrationTestCase(APITestCase):
     def test_business_logic_exception(self):
         """Test that BusinessLogicException works correctly."""
         with override_settings(ROOT_URLCONF="tests.test_api_error_integration"):
-            response = self.client.post(
-                "/test-errors/", {"error_type": "business_logic"}, format="json"
-            )
+            response = self.client.post("/test-errors/", {"error_type": "business_logic"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -179,9 +156,7 @@ class RealWorldErrorScenariosTestCase(APITestCase):
 
     def setUp(self):
         """Set up test data."""
-        self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
-        )
+        self.user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
 
     def test_unauthenticated_request_format(self):
         """Test unauthenticated request error format."""
@@ -189,33 +164,31 @@ class RealWorldErrorScenariosTestCase(APITestCase):
         response = self.client.get("/api/posts/")
 
         # Should be 401 with standard format if our handler processes it
-        if response.status_code == status.HTTP_401_UNAUTHORIZED:
-            if isinstance(response.data, dict) and "message" in response.data:
-                # Our handler processed it
-                self.assertIn("message", response.data)
-                self.assertIn("errors", response.data)
-                self.assertIsInstance(response.data["errors"], list)
+        if response.status_code == status.HTTP_401_UNAUTHORIZED and (
+            isinstance(response.data, dict) and "message" in response.data
+        ):
+            # Our handler processed it
+            self.assertIn("message", response.data)
+            self.assertIn("errors", response.data)
+            self.assertIsInstance(response.data["errors"], list)
 
     def test_method_not_allowed_format(self):
         """Test method not allowed error format."""
         # Try DELETE on list endpoint (usually not allowed)
         response = self.client.delete("/api/posts/")
 
-        if response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED:
-            if isinstance(response.data, dict) and "message" in response.data:
-                # Our handler processed it
-                self.assertIn("message", response.data)
-                self.assertIn("errors", response.data)
-                self.assertEqual(
-                    response.data["errors"][0]["code"], "method_not_allowed"
-                )
+        if response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED and (
+            isinstance(response.data, dict) and "message" in response.data
+        ):
+            # Our handler processed it
+            self.assertIn("message", response.data)
+            self.assertIn("errors", response.data)
+            self.assertEqual(response.data["errors"][0]["code"], "method_not_allowed")
 
     def test_invalid_json_format(self):
         """Test invalid JSON format error."""
         # Send malformed JSON
-        response = self.client.post(
-            "/api/posts/", data='{"invalid": json}', content_type="application/json"
-        )
+        response = self.client.post("/api/posts/", data='{"invalid": json}', content_type="application/json")
 
         # Should return some error (400, 401, etc.)
         self.assertNotEqual(response.status_code, status.HTTP_200_OK)

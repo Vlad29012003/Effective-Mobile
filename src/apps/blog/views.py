@@ -16,7 +16,6 @@ from .permissions import (
     CanEditPost,
     CanPublishPost,
     CanViewPost,
-    IsOwnerOrReadOnly,
 )
 from .schemas import PostPublishActionSchema, PostUnpublishActionSchema
 from .serializers import PostSerializer
@@ -43,9 +42,7 @@ class PostViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return Post.objects.filter(is_published=True).select_related("author")
         if self.action == "my_posts":
-            return Post.objects.filter(author=self.request.user).select_related(
-                "author"
-            )
+            return Post.objects.filter(author=self.request.user).select_related("author")
 
         return Post.objects.all().select_related("author")
 
@@ -58,45 +55,32 @@ class PostViewSet(viewsets.ModelViewSet):
         # Check permissions at view level
         if self.action == "retrieve":
             if not CanViewPost().has_object_permission(self.request, self, obj):
-                self.permission_denied(
-                    self.request, message="You don't have permission to view this post"
-                )
+                self.permission_denied(self.request, message="You don't have permission to view this post")
         elif self.action in ["update", "partial_update"]:
             if not CanEditPost().has_object_permission(self.request, self, obj):
-                self.permission_denied(
-                    self.request, message="You don't have permission to edit this post"
-                )
-        elif self.action == "destroy":
-            if not CanDeletePost().has_object_permission(self.request, self, obj):
-                self.permission_denied(
-                    self.request,
-                    message="You don't have permission to delete this post",
-                )
+                self.permission_denied(self.request, message="You don't have permission to edit this post")
+        elif self.action == "destroy" and (not CanDeletePost().has_object_permission(self.request, self, obj)):
+            self.permission_denied(
+                self.request,
+                message="You don't have permission to delete this post",
+            )
 
         return obj
 
     @inject
-    def perform_create(
-        self, serializer: PostSerializer, service: FromDishka[PostService]
-    ) -> None:
+    def perform_create(self, serializer: PostSerializer, service: FromDishka[PostService]) -> None:
         """
         Create post through service with permission checking at view level.
         """
         # Check permission at view level
         if not CanCreatePost().has_permission(self.request, self):
-            self.permission_denied(
-                self.request, message="You don't have permission to create posts"
-            )
+            self.permission_denied(self.request, message="You don't have permission to create posts")
 
-        post = service.create_post(
-            author=self.request.user, data=serializer.validated_data
-        )
+        post = service.create_post(author=self.request.user, data=serializer.validated_data)
         serializer.instance = post
 
     @inject
-    def perform_update(
-        self, serializer: PostSerializer, service: FromDishka[PostService]
-    ) -> None:
+    def perform_update(self, serializer: PostSerializer, service: FromDishka[PostService]) -> None:
         """
         Update post through service with permission checking at view level.
         """
@@ -134,9 +118,7 @@ class PostViewSet(viewsets.ModelViewSet):
     @PostPublishActionSchema.get_schema()
     @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
     @inject
-    def publish(
-        self, request: Request, pk: str | None, service: FromDishka[PostService]
-    ) -> Response:
+    def publish(self, request: Request, pk: str | None, service: FromDishka[PostService]) -> Response:
         """
         Publish a post with permission checking at view level.
         """
@@ -144,9 +126,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
         # Check publish permission at view level
         if not CanPublishPost().has_object_permission(request, self, post):
-            self.permission_denied(
-                request, message="You don't have permission to publish this post"
-            )
+            self.permission_denied(request, message="You don't have permission to publish this post")
 
         updated_post = service.publish_post(post, request.user)
         serializer = self.get_serializer(updated_post)
@@ -155,9 +135,7 @@ class PostViewSet(viewsets.ModelViewSet):
     @PostUnpublishActionSchema.get_schema()
     @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
     @inject
-    def unpublish(
-        self, request: Request, pk: str | None, *, service: FromDishka[PostService]
-    ) -> Response:
+    def unpublish(self, request: Request, pk: str | None, *, service: FromDishka[PostService]) -> Response:
         """
         Unpublish a post with permission checking at view level.
         """
@@ -165,9 +143,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
         # Check publish permission at view level (same permission for unpublish)
         if not CanPublishPost().has_object_permission(request, self, post):
-            self.permission_denied(
-                request, message="You don't have permission to unpublish this post"
-            )
+            self.permission_denied(request, message="You don't have permission to unpublish this post")
 
         updated_post = service.unpublish_post(post, request.user)
         serializer = self.get_serializer(updated_post)

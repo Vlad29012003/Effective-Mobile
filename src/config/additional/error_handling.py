@@ -4,26 +4,21 @@ Middleware for standardized error handling.
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.exceptions import (
     AuthenticationFailed,
     MethodNotAllowed,
-    NotAcceptable,
     NotFound,
     PermissionDenied,
     Throttled,
-    UnsupportedMediaType,
     ValidationError,
 )
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from apps.common.exceptions import (
     ErrorCodes,
-    PermissionDeniedException,
-    ResourceNotFoundException,
     StandardAPIException,
     StandardError,
-    ValidationException,
     convert_drf_validation_error,
 )
 
@@ -121,11 +116,7 @@ def _handle_not_found(exc):
             "errors": [
                 StandardError(
                     code=ErrorCodes.NOT_FOUND,
-                    detail=(
-                        str(exc.detail)
-                        if hasattr(exc, "detail")
-                        else "The requested resource was not found."
-                    ),
+                    detail=(str(exc.detail) if hasattr(exc, "detail") else "The requested resource was not found."),
                 ).to_dict()
             ],
         },
@@ -141,11 +132,7 @@ def _handle_authentication_failed(exc):
             "errors": [
                 StandardError(
                     code=ErrorCodes.INVALID_CREDENTIALS,
-                    detail=(
-                        str(exc.detail)
-                        if hasattr(exc, "detail")
-                        else "Invalid authentication credentials."
-                    ),
+                    detail=(str(exc.detail) if hasattr(exc, "detail") else "Invalid authentication credentials."),
                 ).to_dict()
             ],
         },
@@ -182,9 +169,7 @@ def _handle_throttled(exc):
                 StandardError(
                     code=ErrorCodes.LIMIT_EXCEEDED,
                     detail=(
-                        str(exc.detail)
-                        if hasattr(exc, "detail")
-                        else "Request was throttled. Please try again later."
+                        str(exc.detail) if hasattr(exc, "detail") else "Request was throttled. Please try again later."
                     ),
                 ).to_dict()
             ],
@@ -203,12 +188,8 @@ def _handle_django_validation_error(exc):
             for error in field_errors:
                 errors.append(
                     StandardError(
-                        code=(
-                            error.code if hasattr(error, "code") else ErrorCodes.INVALID
-                        ),
-                        detail=str(
-                            error.message if hasattr(error, "message") else error
-                        ),
+                        code=(error.code if hasattr(error, "code") else ErrorCodes.INVALID),
+                        detail=str(error.message if hasattr(error, "message") else error),
                         attr=field,
                     ).to_dict()
                 )
@@ -242,18 +223,11 @@ def _ensure_standard_format(data, status_code):
         return data  # Already in standard format
 
     # Convert non-standard format to standard
-    if isinstance(data, dict):
-        detail = data.get("detail", str(data))
-    else:
-        detail = str(data)
+    detail = data.get("detail", str(data)) if isinstance(data, dict) else str(data)
 
     return {
         "message": _get_default_message_for_status(status_code),
-        "errors": [
-            StandardError(
-                code=_get_default_code_for_status(status_code), detail=detail
-            ).to_dict()
-        ],
+        "errors": [StandardError(code=_get_default_code_for_status(status_code), detail=detail).to_dict()],
     }
 
 

@@ -85,9 +85,7 @@ class SerializerValidationTestCase(TestCase):
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
-        User.objects.create_user(
-            username="existing", email="existing@example.com", password="password123"
-        )
+        User.objects.create_user(username="existing", email="existing@example.com", password="password123")
 
         data = {
             "email": "existing@example.com",  # Duplicate email
@@ -166,9 +164,7 @@ class BusinessLogicValidationTestCase(TestCase):
 
         # Should have errors for both content and is_published
         content_error = next(e for e in standard_exc.errors if e.attr == "content")
-        published_error = next(
-            e for e in standard_exc.errors if e.attr == "is_published"
-        )
+        published_error = next(e for e in standard_exc.errors if e.attr == "is_published")
 
         self.assertIn("50 characters", content_error.detail)
         self.assertIn("insufficient", published_error.detail.lower())
@@ -272,6 +268,4 @@ class ErrorFormatConsistencyTestCase(TestCase):
 
                     # attr is optional but if present, must be string or None
                     if "attr" in error:
-                        self.assertTrue(
-                            error["attr"] is None or isinstance(error["attr"], str)
-                        )
+                        self.assertTrue(error["attr"] is None or isinstance(error["attr"], str))

@@ -19,7 +19,7 @@ class PostFactory(DjangoModelFactory):
 class PostImageFactory(DjangoModelFactory):
     class Meta:
         model = PostImage
-    
+
     post = factory.SubFactory(PostFactory)
     image = factory.django.ImageField(color="yellow")
     caption = factory.Faker("paragraph")

@@ -122,9 +122,7 @@ def convert_drf_validation_error(
                 )
     elif isinstance(validation_error.detail, list):
         for error in validation_error.detail:
-            errors.append(
-                StandardError(code=getattr(error, "code", "invalid"), detail=str(error))
-            )
+            errors.append(StandardError(code=getattr(error, "code", "invalid"), detail=str(error)))
     else:
         errors.append(
             StandardError(

@@ -1,11 +1,4 @@
-from .test_posts import (
-    PostListTest,
-    PostRetrieveTest,
-    PostCreateTest,
-    PostUpdateTest,
-    PostDeleteTest,
-    PostPublishTest
-)
+from .test_posts import PostCreateTest, PostDeleteTest, PostListTest, PostPublishTest, PostRetrieveTest, PostUpdateTest
 
 __all__ = [
     "PostListTest",

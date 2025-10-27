@@ -47,7 +47,7 @@ class PostService:
     def get_post_by_id(post_id: int) -> Post:
         try:
             post = Post.objects.select_related("author").get(id=post_id)
-        except Post.DoesNotExist:
+        except Post.DoesNotExist as e:
             logger.warning(
                 "Post not found",
                 extra={
@@ -56,7 +56,7 @@ class PostService:
                     "service": "PostService",
                 },
             )
-            raise ResourceNotFoundException(_("Post not found"))
+            raise ResourceNotFoundException(_("Post not found")) from e
 
         logger.info(
             "Post retrieved successfully",
@@ -110,7 +110,7 @@ class PostService:
                     "service": "PostService",
                 },
             )
-            raise BusinessLogicException(_("Failed to create post"))
+            raise BusinessLogicException(_("Failed to create post")) from e
 
     @staticmethod
     @transaction.atomic

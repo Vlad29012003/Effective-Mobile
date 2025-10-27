@@ -30,9 +30,7 @@ class StandardErrorTestCase(TestCase):
 
     def test_standard_error_creation(self):
         """Test creating a StandardError."""
-        error = StandardError(
-            code="required", detail="This field is required.", attr="email"
-        )
+        error = StandardError(code="required", detail="This field is required.", attr="email")
 
         self.assertEqual(error.code, "required")
         self.assertEqual(error.detail, "This field is required.")
@@ -40,9 +38,7 @@ class StandardErrorTestCase(TestCase):
 
     def test_standard_error_to_dict(self):
         """Test converting StandardError to dict."""
-        error = StandardError(
-            code="invalid", detail="Invalid email format.", attr="email"
-        )
+        error = StandardError(code="invalid", detail="Invalid email format.", attr="email")
 
         expected = {
             "code": "invalid",
@@ -157,9 +153,7 @@ class ErrorHandlerAPITestCase(APITestCase):
     def setUp(self):
         """Set up test data."""
         self.client = APIClient()
-        self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
-        )
+        self.user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
 
     def test_validation_error_format(self):
         """Test that validation errors return 422 with standard format."""
@@ -186,9 +180,7 @@ class ErrorHandlerAPITestCase(APITestCase):
     def test_permission_denied_format(self):
         """Test that permission denied returns standard format."""
         # Create a post by another user
-        other_user = User.objects.create_user(
-            username="otheruser", email="other@example.com", password="otherpass123"
-        )
+        User.objects.create_user(username="otheruser", email="other@example.com", password="otherpass123")
 
         # This test would need actual Post model and endpoints
         # For now, let's test the format structure
@@ -202,13 +194,12 @@ class ErrorHandlerAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
         # Check if it follows standard format
-        if hasattr(response, "data") and isinstance(response.data, dict):
-            if "message" in response.data:
-                self.assertIn("message", response.data)
-                # If it has our standard format, check errors too
-                if "errors" in response.data:
-                    self.assertIn("errors", response.data)
-                    self.assertIsInstance(response.data["errors"], list)
+        if hasattr(response, "data") and isinstance(response.data, dict) and "message" in response.data:
+            self.assertIn("message", response.data)
+            # If it has our standard format, check errors too
+            if "errors" in response.data:
+                self.assertIn("errors", response.data)
+                self.assertIsInstance(response.data["errors"], list)
 
 
 class ErrorCodesTestCase(TestCase):
@@ -295,9 +286,7 @@ class IntegrationTestCase(APITestCase):
 
     def setUp(self):
         """Set up test data."""
-        self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
-        )
+        self.user = User.objects.create_user(username="testuser", email="test@example.com", password="testpass123")
 
     def test_complete_error_response_format(self):
         """Test that error responses follow company standards."""

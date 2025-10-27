@@ -1,4 +1,4 @@
-from .base import *  # isort: skip
+from .base import *
 
 # Sentry
 SENTRY_DSN = config("SENTRY_DSN", default=None)

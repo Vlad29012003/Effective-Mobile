@@ -46,9 +46,7 @@ class HealthCheckView(APIView):
         detailed = request.GET.get("detailed", "false").lower() == "true"
 
         if not detailed:
-            return JsonResponse(
-                {"status": "healthy", "service": "django-blog-template"}, status=200
-            )
+            return JsonResponse({"status": "healthy", "service": "django-blog-template"}, status=200)
 
         checks = {}
         overall_status = "healthy"
@@ -58,7 +56,7 @@ class HealthCheckView(APIView):
         checks["celery"] = self._check_celery()
         checks["minio"] = self._check_minio()
 
-        for check_name, check_result in checks.items():
+        for _, check_result in checks.items():
             if not check_result["status"]:
                 overall_status = "unhealthy"
                 break
@@ -143,9 +141,7 @@ class HealthCheckView(APIView):
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             if error_code == "404":
-                logger.error(
-                    f"MinIO bucket not found: {settings.AWS_STORAGE_BUCKET_NAME}"
-                )
+                logger.error(f"MinIO bucket not found: {settings.AWS_STORAGE_BUCKET_NAME}")
                 return {
                     "status": False,
                     "message": f"MinIO bucket not found: {settings.AWS_STORAGE_BUCKET_NAME}",
@@ -162,4 +158,4 @@ class HealthCheckView(APIView):
 
 
 def trigger_error(request):
-    1 / 0
+    1 / 0  # noqa: B018

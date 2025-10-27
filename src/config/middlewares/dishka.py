@@ -8,8 +8,7 @@ class DishkaMiddleware:
 
         if self.container is None:
             raise ValueError(
-                "DISHKA_CONTAINER not found in settings. "
-                "Please call setup_dishka before running the application."
+                "DISHKA_CONTAINER not found in settings. Please call setup_dishka before running the application."
             )
 
     def __call__(self, request):

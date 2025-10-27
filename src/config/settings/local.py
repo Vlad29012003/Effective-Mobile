@@ -1,4 +1,4 @@
-from .base import *  # isort: skip
+from .base import *  # noqa
 
 DEBUG = True
 

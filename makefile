@@ -1,4 +1,5 @@
 PROJECT_DIR = cd src
+UV_RUN = uv run
 MANAGE_PY = uv run manage.py
 
 .PHONY: migrations migrate run test migrations superuser generate_schema run_celery_worker messages compile docker_dev test_django test_domain
@@ -46,7 +47,7 @@ celery-worker:
 
 # Запуск Celery beat
 celery-beat:
-    ${PROJECT_DIR} && celery -A config beat --loglevel=info
+	${PROJECT_DIR} && celery -A config beat --loglevel=info
 
 # Создание сообщений для перевода
 messages:
@@ -63,3 +64,15 @@ docker-local:
 # Создание приложение django
 startapp:
 	$(PROJECT_DIR)/apps && mkdir $(name) && cd .. && $(MANAGE_PY) startapp $(name) apps/$(name)
+
+# Проверка кода через линтер (только проверка, без изменений)
+lint:
+	${UV_RUN} ruff check && ${UV_RUN} ruff format --check
+
+# Форматирование кода (исправляет импорты и форматирование)
+format:
+	${UV_RUN} ruff check --select I --fix && ${UV_RUN} ruff format
+
+# Исправление всех ошибок линтера и форматирование кода
+fix:
+	${UV_RUN} ruff check --fix && ${UV_RUN} ruff format

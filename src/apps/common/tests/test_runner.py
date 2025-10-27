@@ -6,23 +6,6 @@ Run with: python manage.py test tests.test_runner
 
 from django.test import TestCase
 
-# Import all test modules
-from .test_error_handling import (
-    CustomExceptionHandlerTestCase,
-    DRFValidationErrorConversionTestCase,
-    ErrorCodesTestCase,
-    ErrorHandlerAPITestCase,
-    IntegrationTestCase,
-    StandardErrorTestCase,
-    StandardExceptionTestCase,
-)
-from .test_validation_errors import (
-    BusinessLogicValidationTestCase,
-    ErrorFormatConsistencyTestCase,
-    ExceptionHandlerResponseTestCase,
-    SerializerValidationTestCase,
-)
-
 
 class ErrorHandlingTestSuite(TestCase):
     """Test suite runner for all error handling tests."""

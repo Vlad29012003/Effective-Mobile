@@ -43,9 +43,7 @@ class LoggingMiddleware:
 
             if "application/json" in content_type:
                 try:
-                    request_data = json.loads(
-                        request.body.decode("utf-8") if request.body else {}
-                    )
+                    request_data = json.loads(request.body.decode("utf-8") if request.body else {})
                 except Exception as e:
                     request_data = f"Unable to decode JSON body: {str(e)}"
             else:
@@ -53,9 +51,7 @@ class LoggingMiddleware:
                     request_data = request.POST.dict()
                 except Exception:
                     raw = request.body.decode("utf-8") if request.body else ""
-                    request_data = dict(
-                        x.split("=") for x in raw.split("&") if "=" in x
-                    )
+                    request_data = dict(x.split("=") for x in raw.split("&") if "=" in x)
         else:
             request_data = dict(request.GET)
 
@@ -81,9 +77,7 @@ class LoggingMiddleware:
             full_path=request.get_full_path(),
         )
         self.logger.debug("User info: {user_info}", user_info=user_info)
-        self.logger.debug(
-            "Response status: {status_code}", status_code=response.status_code
-        )
+        self.logger.debug("Response status: {status_code}", status_code=response.status_code)
 
         if "text/html" in content_type or "javascript" in content_type:
             self.logger.debug(

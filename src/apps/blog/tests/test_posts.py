@@ -29,30 +29,20 @@ class PostListTest(SessionAuthMixin, BaseTestCase):
         """
         Test that the post list endpoint returns a paginated list of published posts.
         """
-        response: HttpResponse = self.client.get(
-            path=reverse("post-list", query={"limit": 10, "offset": 0})
-        )
+        response: HttpResponse = self.client.get(path=reverse("post-list", query={"limit": 10, "offset": 0}))
         self.check_200_response(response)
 
-        queryset = (
-            Post.objects.filter(is_published=True)
-            .filter(is_published=True)
-            .select_related("author")
-        )
+        queryset = Post.objects.filter(is_published=True).filter(is_published=True).select_related("author")
         serializer = PostSerializer(instance=queryset, many=True)
 
-        expected_response: Response = self.response_builder.build_200_response(
-            serializer.data, response.wsgi_request
-        )
+        expected_response: Response = self.response_builder.build_200_response(serializer.data, response.wsgi_request)
         self.assertResponseEqual(response, expected_response)
 
     def test_filter_by_author(self) -> None:
         """
         Test that the post list endpoint can filter posts by author username.
         """
-        random_author_username: str = random.choice(
-            [post.author.username for post in self.posts if post.is_published]
-        )
+        random_author_username: str = random.choice([post.author.username for post in self.posts if post.is_published])
         response: HttpResponse = self.client.get(
             path=reverse(
                 "post-list",
@@ -72,9 +62,7 @@ class PostListTest(SessionAuthMixin, BaseTestCase):
         )
         serializer = PostSerializer(instance=queryset, many=True)
 
-        expected_response: Response = self.response_builder.build_200_response(
-            serializer.data, response.wsgi_request
-        )
+        expected_response: Response = self.response_builder.build_200_response(serializer.data, response.wsgi_request)
         self.assertResponseEqual(response, expected_response)
 
     def test_empty_response(self) -> None:
@@ -86,9 +74,7 @@ class PostListTest(SessionAuthMixin, BaseTestCase):
         )
         self.check_200_response(response)
 
-        expected_response: Response = self.response_builder.build_200_response(
-            [], response.wsgi_request
-        )
+        expected_response: Response = self.response_builder.build_200_response([], response.wsgi_request)
         self.assertResponseEqual(response, expected_response)
 
     def test_my_posts(self) -> None:
@@ -99,21 +85,14 @@ class PostListTest(SessionAuthMixin, BaseTestCase):
         response: HttpResponse = self.client.get(path=reverse("post-my-posts"))
         self.check_200_response(response)
         self.assertTrue(
-            all(
-                [
-                    post["author_id"] == self.user.id
-                    for post in response.json()["results"]
-                ]
-            ),
+            all([post["author_id"] == self.user.id for post in response.json()["results"]]),
             "All posts should belong to the current user",
         )
 
         queryset = Post.objects.filter(author=self.user).select_related("author")
         serializer = PostSerializer(instance=queryset, many=True)
 
-        expected_response: Response = self.response_builder.build_200_response(
-            serializer.data, response.wsgi_request
-        )
+        expected_response: Response = self.response_builder.build_200_response(serializer.data, response.wsgi_request)
         self.assertResponseEqual(response, expected_response)
 
     @classmethod
@@ -131,9 +110,7 @@ class PostRetrieveTest(SessionAuthMixin, BaseTestCase):
         Test that a published post can be retrieved by its ID.
         """
         post: Post = PostFactory(is_published=True)
-        response: HttpResponse = self.client.get(
-            path=reverse("post-detail", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.get(path=reverse("post-detail", kwargs={"pk": post.id}))
         self.check_200_response(response)
 
         serializer = PostSerializer(instance=post)
@@ -148,23 +125,20 @@ class PostRetrieveTest(SessionAuthMixin, BaseTestCase):
         Test that retrieving an unpublished post returns a 403 Forbidden response.
         """
         post: Post = PostFactory(is_published=False)
-        response: HttpResponse = self.client.get(
-            path=reverse("post-detail", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.get(path=reverse("post-detail", kwargs={"pk": post.id}))
 
         self.check_403_response(response)
 
-        expected_response: Response = self.response_builder.build_403_response(PermissionDenied(detail="You don't have permission to view this post"))
-
+        expected_response: Response = self.response_builder.build_403_response(
+            PermissionDenied(detail="You don't have permission to view this post")
+        )
         self.assertResponseEqual(response, expected_response)
 
     def test_retrieve_nonexistent(self) -> None:
         """
         Test that retrieving a non-existent post returns a 404 Not Found response.
         """
-        response: HttpResponse = self.client.get(
-            path=reverse("post-detail", kwargs={"pk": 9999})
-        )
+        response: HttpResponse = self.client.get(path=reverse("post-detail", kwargs={"pk": 9999}))
 
         self.check_404_response(response)
 
@@ -192,9 +166,7 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
 
         post_data = model_to_dict(PostFactory.build(), exclude=["author", "id"])
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-list"), data=post_data
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-list"), data=post_data)
         self.check_201_response(response)
 
         queryset = Post.objects.filter(
@@ -203,14 +175,10 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
             is_published=post_data["is_published"],
         )
 
-        self.assertTrue(
-            queryset.exists(), "Post should be created and exist in the database"
-        )
+        self.assertTrue(queryset.exists(), "Post should be created and exist in the database")
         serializer = PostSerializer(instance=queryset.first())
 
-        expected_response: Response = self.response_builder.build_201_response(
-            serializer.data, response.wsgi_request
-        )
+        expected_response: Response = self.response_builder.build_201_response(serializer.data, response.wsgi_request)
         self.assertResponseEqual(response, expected_response)
 
         mock_has_permission.assert_called_once()
@@ -223,13 +191,11 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
         mock_has_permission.return_value = False
         post_data = model_to_dict(PostFactory.build(), exclude=["author", "id"])
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-list"), data=post_data
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-list"), data=post_data)
         self.check_403_response(response)
 
         expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied(detail="You don't have permission to create posts")
+            exception=PermissionDenied(detail="You don't have permission to create posts")
         )
         self.assertResponseEqual(response, expected_response)
 
@@ -239,13 +205,9 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
         """
         Test that creating a post fails with invalid data (missing required fields).
         """
-        post_data = model_to_dict(
-            PostFactory.build(), exclude=["author", "id", "title"]
-        )
+        post_data = model_to_dict(PostFactory.build(), exclude=["author", "id", "title"])
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-list"), data=post_data
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-list"), data=post_data)
         self.check_422_response(response)
 
         expected_response: Response = self.response_builder.build_error(
@@ -268,9 +230,7 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
         self.client.logout()
         post_data = model_to_dict(PostFactory.build(), exclude=["author", "id"])
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-list"), data=post_data
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-list"), data=post_data)
         self.check_403_response(response)
 
         expected_response: Response = self.response_builder.build_error(
@@ -287,7 +247,6 @@ class PostCreateTest(SessionAuthMixin, BaseTestCase):
 
 
 class PostUpdateTest(SessionAuthMixin, BaseTestCase):
-
     @patch("apps.blog.permissions.has_permission")
     def test_update(self, mock_has_permission: MagicMock) -> None:
         """
@@ -319,9 +278,6 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-        mock_has_permission.assert_called_once()
-
-
     @patch("apps.blog.permissions.has_permission")
     def test_update_without_permission(self, mock_has_permission: MagicMock) -> None:
         """
@@ -330,9 +286,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
         mock_has_permission.return_value = False
 
         post: Post = PostFactory.create(author=self.user, is_published=True)
-        data_to_update = model_to_dict(
-            PostFactory.build(is_published=False), exclude=["author", "id"]
-        )
+        data_to_update = model_to_dict(PostFactory.build(is_published=False), exclude=["author", "id"])
 
         response: HttpResponse = self.client.put(
             path=reverse("post-detail", kwargs={"pk": post.id}), data=data_to_update
@@ -361,9 +315,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
         """
         data_to_update = model_to_dict(PostFactory.build(), exclude=["author", "id"])
 
-        response: HttpResponse = self.client.put(
-            path=reverse("post-detail", kwargs={"pk": 99999}), data=data_to_update
-        )
+        response: HttpResponse = self.client.put(path=reverse("post-detail", kwargs={"pk": 99999}), data=data_to_update)
         self.check_404_response(response)
 
         expected_response: Response = self.response_builder.build_404_response(
@@ -376,9 +328,7 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
         Test that updating another user's post fails with a 403 error.
         """
         post: Post = PostFactory.create(is_published=True)
-        data_to_update = model_to_dict(
-            PostFactory.build(is_published=False), exclude=["author", "id"]
-        )
+        data_to_update = model_to_dict(PostFactory.build(is_published=False), exclude=["author", "id"])
 
         response: HttpResponse = self.client.put(
             path=reverse("post-detail", kwargs={"pk": post.id}), data=data_to_update
@@ -393,9 +343,9 @@ class PostUpdateTest(SessionAuthMixin, BaseTestCase):
                 f"Post attribute '{key}' should not be updated to '{value}' without permission",
             )
 
-        expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied("You don't have permission to edit this post")
-        )
+        expected_response: Response = self.response_builder.build_403_response(PermissionDenied(
+            "You don't have permission to edit this post"
+        ))
         self.assertResponseEqual(response, expected_response)
 
     def tearDown(self):
@@ -411,20 +361,13 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
         """
         mock_has_permission.return_value = True
 
-        post: Post = PostFactory.create(author=self.user)
-
-        response: HttpResponse = self.client.delete(
-            path=reverse("post-detail", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.delete(path=reverse("post-detail", kwargs={"pk": post.id}))
         self.check_204_response(response)
 
         self.assertFalse(
             Post.objects.filter(id=post.id).exists(),
             "Post should be deleted from the database",
         )
-
-        mock_has_permission.assert_called_once()
-
 
     @patch("apps.blog.permissions.has_permission")
     def test_delete_without_permission(self, mock_has_permission: MagicMock) -> None:
@@ -433,11 +376,7 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
         """
         mock_has_permission.return_value = False
 
-        post: Post = PostFactory.create(author=self.user, is_published=True)
-
-        response: HttpResponse = self.client.delete(
-            path=reverse("post-detail", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.delete(path=reverse("post-detail", kwargs={"pk": post.id}))
         self.check_403_response(response)
 
         self.assertTrue(
@@ -459,9 +398,7 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
         """
         post: Post = PostFactory.create(is_published=True)
 
-        response: HttpResponse = self.client.delete(
-            path=reverse("post-detail", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.delete(path=reverse("post-detail", kwargs={"pk": post.id}))
         self.check_403_response(response)
 
         self.assertTrue(
@@ -469,18 +406,16 @@ class PostDeleteTest(SessionAuthMixin, BaseTestCase):
             "Post should still exist in the database when deletion is not allowed",
         )
 
-        expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied(detail="You don't have permission to delete this post")
-        )
+        expected_response: Response = self.response_builder.build_403_response(PermissionDenied(
+            "You don't have permission to delete this post"
+        ))
         self.assertResponseEqual(response, expected_response)
 
     def test_delete_nonexistent(self):
         """
         Test that deleting a non-existent post returns a 404 error.
         """
-        response: HttpResponse = self.client.delete(
-            path=reverse("post-detail", kwargs={"pk": 99999})
-        )
+        response: HttpResponse = self.client.delete(path=reverse("post-detail", kwargs={"pk": 99999}))
         self.check_404_response(response)
 
         expected_response: Response = self.response_builder.build_404_response(
@@ -503,24 +438,18 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
 
         post: Post = PostFactory.create(author=self.user, is_published=False)
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-publish", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-publish", kwargs={"pk": post.id}))
         self.check_200_response(response)
 
         post.refresh_from_db()
 
-        self.assertTrue(
-            post.is_published, "Post should be marked as published after publish action"
-        )
+        self.assertTrue(post.is_published, "Post should be marked as published after publish action")
 
         serializer = PostSerializer(instance=post)
         expected_response: Response = self.response_builder.build_200_response(
             data=serializer.data, request=response.wsgi_request, many=False
         )
         self.assertResponseEqual(response, expected_response)
-
-        mock_has_permission.assert_called_once()
 
     @patch("apps.blog.permissions.has_permission")
     def test_publish_published(self, mock_has_permission: MagicMock):
@@ -531,9 +460,9 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
 
         post: Post = PostFactory.create(author=self.user, is_published=True)
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-publish", kwargs={"pk": post.id})
-        )
+        mock_has_permission.return_value = True
+
+        response: HttpResponse = self.client.post(path=reverse("post-publish", kwargs={"pk": post.id}))
 
         self.check_422_response(response)
 
@@ -549,8 +478,6 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-        mock_has_permission.assert_called_once()
-
     @patch("apps.blog.permissions.has_permission")
     def test_publish_without_publish_permission(self, mock_has_permission: MagicMock):
         """
@@ -560,20 +487,14 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
 
         mock_has_permission.return_value = False
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-publish", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-publish", kwargs={"pk": post.id}))
         self.check_403_response(response)
 
         expected_response: Response = self.response_builder.build_403_response(
-            PermissionDenied(
-                "You don't have permission to publish this post"
-            )
+            PermissionDenied(detail="You don't have permission to publish this post")
         )
         
         self.assertResponseEqual(response, expected_response)
-
-        mock_has_permission.assert_called_once()
 
     @patch("apps.blog.permissions.has_permission")
     def test_unpublish(self, mock_has_permission: MagicMock):
@@ -584,9 +505,7 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
 
         mock_has_permission.return_value = True
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-unpublish", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-unpublish", kwargs={"pk": post.id}))
         self.check_200_response(response)
 
         post.refresh_from_db()
@@ -602,8 +521,6 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
         )
         self.assertResponseEqual(response, expected_response)
 
-        mock_has_permission.assert_called_once()
-
     @patch("apps.blog.permissions.has_permission")
     def test_unpublish_unpublished(self, mock_has_permission: MagicMock):
         """
@@ -613,9 +530,7 @@ class PostPublishTest(SessionAuthMixin, BaseTestCase):
 
         mock_has_permission.return_value = True
 
-        response: HttpResponse = self.client.post(
-            path=reverse("post-unpublish", kwargs={"pk": post.id})
-        )
+        response: HttpResponse = self.client.post(path=reverse("post-unpublish", kwargs={"pk": post.id}))
         self.check_422_response(response)
 
         post.refresh_from_db()

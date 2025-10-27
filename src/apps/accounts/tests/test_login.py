@@ -3,13 +3,13 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
+from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from django.http import HttpResponse
 
-from apps.common.mixins import BaseTestCase
 from apps.common.factories import UserFactory
+from apps.common.mixins import BaseTestCase
 
 User = get_user_model()
 
@@ -17,15 +17,9 @@ User = get_user_model()
 class LoginViewTest(BaseTestCase):
     def setUp(self):
         self.client.logout()
-        self.active_user: User = UserFactory.create(
-            username="active", password="secret", is_active=True
-        )
-        self.inactive_user: User = UserFactory.create(
-            username="blocked", password="secret", is_active=False
-        )
-        self.will_blocked_user: User = UserFactory.create(
-            username="will_blocked", password="secret", is_active=True
-        )
+        self.active_user: User = UserFactory.create(username="active", password="secret", is_active=True)
+        self.inactive_user: User = UserFactory.create(username="blocked", password="secret", is_active=False)
+        self.will_blocked_user: User = UserFactory.create(username="will_blocked", password="secret", is_active=True)
 
     def tearDown(self):
         self.active_user.delete()
@@ -57,9 +51,7 @@ class LoginViewTest(BaseTestCase):
         self.assertResponseEqual(response, expected_response)
 
     def test_user_not_found(self):
-        response: HttpResponse = self.client.post(
-            path=reverse("login"), data={"username": "nope", "password": "x"}
-        )
+        response: HttpResponse = self.client.post(path=reverse("login"), data={"username": "nope", "password": "x"})
         self.check_404_response(response)
 
         expected_response = self.response_builder.build_response(

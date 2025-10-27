@@ -1,4 +1,4 @@
-from django_celery_beat.admin import PeriodicTaskForm, TaskSelectWidget
+from django_celery_beat.admin import PeriodicTaskForm
 from unfold.widgets import UnfoldAdminTextInputWidget
 
 from apps.common.widgets import UnfoldTaskSelectWidget
