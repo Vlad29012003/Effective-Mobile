@@ -28,8 +28,6 @@ build-image:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --target dev -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
-  tags:
-    - general-test-ci
   only:
     - main
     - dev
