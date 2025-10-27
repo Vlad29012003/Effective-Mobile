@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import tempfile
@@ -25,13 +26,16 @@ from config.additional.error_handling import (
 
 User = get_user_model()
 
+
 class ResponseBuilder:
     @classmethod
     def build_response(cls, data: Any, status: int) -> Response:
         return Response(data=data, status=status)
 
     @classmethod
-    def build_200_response(cls, data: list[dict[str, Any]], request: Request | WSGIRequest, many: bool = True) -> Response:
+    def build_200_response(
+        cls, data: list[dict[str, Any]], request: Request | WSGIRequest, many: bool = True
+    ) -> Response:
         if isinstance(request, WSGIRequest):
             request = Request(request)
 
@@ -43,28 +47,26 @@ class ResponseBuilder:
             return response
 
         return Response(data=data, status=status.HTTP_200_OK)
-    
 
     @classmethod
     def build_201_response(cls, data: list[dict[str, Any]], request: Request | WSGIRequest) -> Response:
         if isinstance(request, WSGIRequest):
             request = Request(request)
-        
+
         return Response(data=data, status=status.HTTP_201_CREATED)
-    
 
     @classmethod
     def build_error(cls, status: int, message: str, errors: list) -> Response:
         return Response(data={"message": message, "errors": errors}, status=status)
-    
+
     @classmethod
     def build_403_response(cls, exception: exceptions.PermissionDenied) -> Response:
         return _handle_permission_denied(exc=exception)
-        
+
     @classmethod
     def build_404_response(cls, exception: exceptions.NotFound) -> Response:
         return _handle_not_found(exc=exception)
-    
+
     @classmethod
     def build_422_response(cls, exception: exceptions.ValidationError) -> Response:
         return _handle_validation_error(exc=exception)
@@ -111,29 +113,31 @@ class BaseTestCase(APITestCase):
         """
         Check that response status code is 401 UNAUTHORIZED
         """
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Response status code is not 401 UNAUTHORIZED")
+        self.assertEqual(
+            response.status_code, status.HTTP_401_UNAUTHORIZED, "Response status code is not 401 UNAUTHORIZED"
+        )
 
     def check_403_response(self, response: HttpResponse) -> None:
         """
         Check that response status code is 403 FORBIDDEN
         """
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Response status code is not 403 FORBIDDEN")
-    
+
     def check_422_response(self, response: HttpResponse) -> None:
         """
         Check that response status code is 422 UNPROCESSABLE ENTITY
         """
-        self.assertEqual(response.status_code, status.HTTP_422_UNPROCESSABLE_ENTITY, "Response status code is not 422 UNPROCESSABLE ENTITY")
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Response status code is not 422 UNPROCESSABLE ENTITY",
+        )
 
     def assertResponseEqual(self, response: HttpResponse | Response, expected_response: Response) -> None:
         if isinstance(response, HttpResponse):
-            response = Response(
-                data=response.json(),
-                status=response.status_code
-            )
+            response = Response(data=response.json(), status=response.status_code)
         self.assertEqual(response.status_code, expected_response.status_code, "Response status codes didn't match")
         self.assertEqual(response.data, expected_response.data, "Response JSON didn't match")
-
 
 
 class SessionAuthMixin:
@@ -141,7 +145,7 @@ class SessionAuthMixin:
     def setUpTestData(cls):
         super().setUpTestData()
         cls.user = User.objects.create_user(username="tester", password="secret")
-    
+
     def setUp(self):
         super().setUp()
         logged_in = self.client.login(username="tester", password="secret")
@@ -150,6 +154,7 @@ class SessionAuthMixin:
     def tearDown(self):
         cache.clear()
         super().tearDown()
+
 
 class CleanMinioMixin:
     @classmethod
@@ -161,10 +166,10 @@ class CleanMinioMixin:
 
     @classmethod
     def _backup_storage_settings(cls):
-        cls._original_bucket = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None)
+        cls._original_bucket = getattr(settings, "AWS_STORAGE_BUCKET_NAME", None)
         cls._original_storage = default_storage
 
-        if hasattr(default_storage, 'bucket_name'):
+        if hasattr(default_storage, "bucket_name"):
             cls._original_bucket_name = default_storage.bucket_name
 
     @classmethod
@@ -173,10 +178,10 @@ class CleanMinioMixin:
 
         settings.AWS_STORAGE_BUCKET_NAME = cls.test_bucket
 
-        if hasattr(default_storage, 'bucket_name'):
+        if hasattr(default_storage, "bucket_name"):
             default_storage.bucket_name = cls.test_bucket
 
-        if hasattr(default_storage, '_bucket'):
+        if hasattr(default_storage, "_bucket"):
             default_storage._bucket = None
 
     @classmethod
@@ -188,19 +193,15 @@ class CleanMinioMixin:
     @classmethod
     def _cleanup_test_files(cls):
         try:
-            dirs, files = default_storage.listdir('')
+            dirs, files = default_storage.listdir("")
 
             for file_name in files:
-                try:
+                with contextlib.suppress(Exception):
                     default_storage.delete(file_name)
-                except Exception:
-                    pass
 
             for dir_name in dirs:
-                try:
+                with contextlib.suppress(Exception):
                     cls._cleanup_directory(dir_name)
-                except Exception:
-                    pass
 
         except Exception as e:
             print(f"Failed to cleanup test files: {e}")
@@ -212,10 +213,8 @@ class CleanMinioMixin:
 
             for file_name in files:
                 file_path = f"{directory}/{file_name}"
-                try:
+                with contextlib.suppress(Exception):
                     default_storage.delete(file_path)
-                except Exception:
-                    pass
 
             for dir_name in dirs:
                 nested_dir = f"{directory}/{dir_name}"
@@ -226,21 +225,21 @@ class CleanMinioMixin:
 
     @classmethod
     def _restore_storage_settings(cls):
-        if hasattr(cls, '_original_bucket') and cls._original_bucket:
+        if hasattr(cls, "_original_bucket") and cls._original_bucket:
             settings.AWS_STORAGE_BUCKET_NAME = cls._original_bucket
 
-        if hasattr(cls, '_original_bucket_name') and hasattr(default_storage, 'bucket_name'):
+        if hasattr(cls, "_original_bucket_name") and hasattr(default_storage, "bucket_name"):
             default_storage.bucket_name = cls._original_bucket_name
 
-        if hasattr(default_storage, '_bucket'):
+        if hasattr(default_storage, "_bucket"):
             default_storage._bucket = None
 
 
-class CleanMediaMixin:    
+class CleanMediaMixin:
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.temp_media_root = tempfile.mkdtemp(prefix='test_media_')
+        cls.temp_media_root = tempfile.mkdtemp(prefix="test_media_")
         cls.temp_media_url = f"/test_media_{id(cls)}/"
         cls._original_media_root: str = settings.MEDIA_ROOT
         cls._original_media_url: str = settings.MEDIA_URL
@@ -250,14 +249,14 @@ class CleanMediaMixin:
 
     @classmethod
     def tearDownClass(cls):
-        if hasattr(cls, '_original_media_root'):
+        if hasattr(cls, "_original_media_root"):
             settings.MEDIA_ROOT = cls._original_media_root
             settings.MEDIA_URL = cls._original_media_url
-        
-        if hasattr(cls, 'temp_media_root') and os.path.exists(cls.temp_media_root):
+
+        if hasattr(cls, "temp_media_root") and os.path.exists(cls.temp_media_root):
             try:
                 shutil.rmtree(cls.temp_media_root)
             except Exception as e:
-                print(f'Failed to cleanup {cls.temp_media_root}: {e}')
-        
+                print(f"Failed to cleanup {cls.temp_media_root}: {e}")
+
         super().tearDownClass()

@@ -47,24 +47,16 @@ class PermissionService:
         for app_config in apps.get_app_configs():
             try:
                 # Try to import permissions module from each app
-                permissions_module = importlib.import_module(
-                    f"{app_config.name}.permissions"
-                )
+                permissions_module = importlib.import_module(f"{app_config.name}.permissions")
 
                 # Look for PermissionChecker class in module
                 for attr_name in dir(permissions_module):
                     attr = getattr(permissions_module, attr_name)
 
                     # Check if this is a PermissionChecker subclass
-                    if (
-                        isinstance(attr, type)
-                        and issubclass(attr, PermissionChecker)
-                        and attr != PermissionChecker
-                    ):
+                    if isinstance(attr, type) and issubclass(attr, PermissionChecker) and attr != PermissionChecker:
                         # Register checker
-                        app_name = app_config.name.split(".")[
-                            -1
-                        ]  # get last part (blog, user, etc.)
+                        app_name = app_config.name.split(".")[-1]  # get last part (blog, user, etc.)
                         self.checkers[app_name] = attr()
 
             except (ImportError, AttributeError):

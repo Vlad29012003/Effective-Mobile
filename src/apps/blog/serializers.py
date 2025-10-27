@@ -32,6 +32,4 @@ class PostSerializer(serializers.ModelSerializer):
         Создание поста через сервис происходит в views.
         Этот метод не должен вызываться напрямую.
         """
-        raise NotImplementedError(
-            "Post creation should be handled through PostService in views"
-        )
+        raise NotImplementedError("Post creation should be handled through PostService in views")

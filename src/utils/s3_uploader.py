@@ -8,9 +8,7 @@ from utils.storage import get_s3_client
 
 
 class S3MultipartService:
-    def __init__(
-        self, bucket_name: str, object_key: str, s3_client: BaseClient | None = None
-    ):
+    def __init__(self, bucket_name: str, object_key: str, s3_client: BaseClient | None = None):
         self.bucket_name = bucket_name
         self.object_key = object_key
         self.s3_client = s3_client or get_s3_client()
@@ -29,9 +27,7 @@ class S3MultipartService:
         mpu = self.s3_client.create_multipart_upload(**mpu_params)
         self.upload_id = mpu["UploadId"]
         self._is_mpu_initialized = True
-        self.logger.info(
-            f"MPU initialized: {self.upload_id} for s3://{self.bucket_name}/{self.object_key}"
-        )
+        self.logger.info(f"MPU initialized: {self.upload_id} for s3://{self.bucket_name}/{self.object_key}")
 
     def upload_part(self, part_number: int, body_content: bytes) -> bool:
         try:
@@ -43,9 +39,7 @@ class S3MultipartService:
                 Body=body_content,
             )
             self.parts.append({"PartNumber": part_number, "ETag": response["ETag"]})
-            self.logger.info(
-                f"Uploaded part {part_number} (size: {len(body_content)}) for {self.object_key}"
-            )
+            self.logger.info(f"Uploaded part {part_number} (size: {len(body_content)}) for {self.object_key}")
             return True
         except ClientError as e:
             self.logger.error(
@@ -56,9 +50,7 @@ class S3MultipartService:
 
     def complete_mpu(self) -> bool:
         if not self.parts:
-            self.logger.warning(
-                f"No S3 parts staged for {self.object_key}. Aborting MPU."
-            )
+            self.logger.warning(f"No S3 parts staged for {self.object_key}. Aborting MPU.")
             self.abort_mpu("No S3 parts to complete MPU.")
             return False
         try:
@@ -68,9 +60,7 @@ class S3MultipartService:
                 UploadId=self.upload_id,
                 MultipartUpload={"Parts": self.parts},
             )
-            self.logger.info(
-                f"MPU completed for s3://{self.bucket_name}/{self.object_key}"
-            )
+            self.logger.info(f"MPU completed for s3://{self.bucket_name}/{self.object_key}")
             return True
         except ClientError as e:
             self.logger.error(
@@ -83,9 +73,7 @@ class S3MultipartService:
     def abort_mpu(self, reason: str = "Error during processing"):
         if self.upload_id:
             try:
-                self.logger.warning(
-                    f"Aborting MPU {self.upload_id} for {self.object_key}. Reason: {reason}"
-                )
+                self.logger.warning(f"Aborting MPU {self.upload_id} for {self.object_key}. Reason: {reason}")
                 self.s3_client.abort_multipart_upload(
                     Bucket=self.bucket_name,
                     Key=self.object_key,

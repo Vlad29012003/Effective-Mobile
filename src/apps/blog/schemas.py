@@ -26,9 +26,7 @@ class PostUnpublishActionSchema(BaseViewSchema):
     schema = {
         "methods": ["POST"],
         "summary": _("Unpublish post"),
-        "description": _(
-            "Unpublish a published post, changing its status back to Draft"
-        ),
+        "description": _("Unpublish a published post, changing its status back to Draft"),
         "request": None,
         "parameters": [
             OpenApiParameter(

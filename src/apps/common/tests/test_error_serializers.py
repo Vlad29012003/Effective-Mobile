@@ -19,9 +19,7 @@ class TestValidationSerializer(serializers.Serializer):
     def validate_email(self, value):
         """Custom email validation."""
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "User with this email already exists.", code="duplicate"
-            )
+            raise serializers.ValidationError("User with this email already exists.", code="duplicate")
         return value
 
     def validate_username(self, value):
@@ -33,9 +31,7 @@ class TestValidationSerializer(serializers.Serializer):
     def validate(self, data):
         """Cross-field validation."""
         if data.get("username") == data.get("email"):
-            raise serializers.ValidationError(
-                {"username": "Username and email cannot be the same."}
-            )
+            raise serializers.ValidationError({"username": "Username and email cannot be the same."})
         return data
 
 
@@ -50,9 +46,7 @@ class TestBusinessLogicSerializer(serializers.Serializer):
         """Business rule: certain words are forbidden."""
         forbidden_words = ["spam", "forbidden", "banned"]
         if any(word in value.lower() for word in forbidden_words):
-            raise serializers.ValidationError(
-                "Title contains forbidden words.", code="forbidden_content"
-            )
+            raise serializers.ValidationError("Title contains forbidden words.", code="forbidden_content")
         return value
 
     def validate(self, data):

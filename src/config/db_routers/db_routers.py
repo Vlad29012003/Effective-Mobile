@@ -27,9 +27,9 @@ class ExternalDatabaseRouter:
         """
         Allow relations if a model in the external apps is involved.
         """
-        if obj1._meta.app_label.startswith(
+        if obj1._meta.app_label.startswith(self.route_app_prefix) or obj2._meta.app_label.startswith(
             self.route_app_prefix
-        ) or obj2._meta.app_label.startswith(self.route_app_prefix):
+        ):
             return True
 
         return None

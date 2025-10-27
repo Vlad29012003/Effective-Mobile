@@ -1,0 +1,7 @@
+[Task ID if exists] Short, clear message in one line
+ 
+Summary:
+* ...
+ 
+Test plan:
+* ...

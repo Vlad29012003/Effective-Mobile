@@ -10,9 +10,7 @@ from apps.common.permissions import PermissionChecker, has_permission
 
 class BlogPermission(str, Enum):
     @staticmethod
-    def _generate_next_value_(
-        name: str, start: int, count: int, last_values: list[Any]
-    ) -> str:
+    def _generate_next_value_(name: str, start: int, count: int, last_values: list[Any]) -> str:
         return f"blog.{name.lower()}"
 
     VIEW_POST = auto()
@@ -34,10 +32,7 @@ PERMISSION_VERBOSE = {
     BlogPermission.DELETE_ANY_POST: "Can delete any post",
 }
 
-PERMISSIONS = [
-    (perm.value.replace("blog.", "", 1), PERMISSION_VERBOSE[perm])
-    for perm in BlogPermission
-]
+PERMISSIONS = [(perm.value.replace("blog.", "", 1), PERMISSION_VERBOSE[perm]) for perm in BlogPermission]
 
 
 class BlogPermissionChecker(PermissionChecker):
@@ -48,10 +43,7 @@ class BlogPermissionChecker(PermissionChecker):
         if permission == "view_post":
             return True
 
-        elif permission == "create_post":
-            return user.is_authenticated
-
-        elif permission in ["edit_post", "delete_post", "publish_post"]:
+        elif permission == "create_post" or permission in ["edit_post", "delete_post", "publish_post"]:
             return user.is_authenticated
 
         elif permission == "edit_any_post":
@@ -91,9 +83,7 @@ class CanViewPost(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        return has_permission(
-            request.user, f"{AppPrefixes.BLOG}.{BlogPermission.VIEW_POST.value}"
-        )
+        return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.VIEW_POST.value}")
 
 
 class CanCreatePost(permissions.BasePermission):
@@ -105,9 +95,7 @@ class CanCreatePost(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        return has_permission(
-            request.user, f"{AppPrefixes.BLOG}.{BlogPermission.CREATE_POST.value}"
-        )
+        return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.CREATE_POST.value}")
 
 
 class CanEditPost(permissions.BasePermission):
@@ -121,14 +109,10 @@ class CanEditPost(permissions.BasePermission):
 
         # Own posts
         if obj.author == request.user:
-            return has_permission(
-                request.user, f"{AppPrefixes.BLOG}.{BlogPermission.EDIT_POST.value}"
-            )
+            return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.EDIT_POST.value}")
 
         # Any posts (for moderators/editors)
-        return has_permission(
-            request.user, f"{AppPrefixes.BLOG}.{BlogPermission.EDIT_ANY_POST.value}"
-        )
+        return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.EDIT_ANY_POST.value}")
 
 
 class CanDeletePost(permissions.BasePermission):
@@ -142,14 +126,10 @@ class CanDeletePost(permissions.BasePermission):
 
         # Own posts
         if obj.author == request.user:
-            return has_permission(
-                request.user, f"{AppPrefixes.BLOG}.{BlogPermission.DELETE_POST.value}"
-            )
+            return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.DELETE_POST.value}")
 
         # Any posts (for editors)
-        return has_permission(
-            request.user, f"{AppPrefixes.BLOG}.{BlogPermission.DELETE_ANY_POST.value}"
-        )
+        return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.DELETE_ANY_POST.value}")
 
 
 class CanPublishPost(permissions.BasePermission):
@@ -161,6 +141,4 @@ class CanPublishPost(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        return has_permission(
-            request.user, f"{AppPrefixes.BLOG}.{BlogPermission.PUBLISH_POST.value}"
-        )
+        return has_permission(request.user, f"{AppPrefixes.BLOG}.{BlogPermission.PUBLISH_POST.value}")

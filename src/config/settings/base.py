@@ -280,9 +280,7 @@ UNFOLD = {
 
 # DRF
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
@@ -326,9 +324,7 @@ if not IS_TESTING:
     }
 
 # Celery
-_env_celery_beat_schedule_filename = config(
-    "ENV_CELERY_BEAT_SCHEDULE_FILENAME", default=None
-)
+_env_celery_beat_schedule_filename = config("ENV_CELERY_BEAT_SCHEDULE_FILENAME", default=None)
 if _env_celery_beat_schedule_filename is not None:
     CELERY_BEAT_SCHEDULE_FILENAME = _env_celery_beat_schedule_filename
 

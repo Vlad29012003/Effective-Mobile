@@ -16,15 +16,12 @@ __all__ = [
 ]
 
 
-def inject(func: Callable[P, T]) -> Callable[P, T]:
+def inject(func: Callable[P, T]) -> Callable[P, T]:  # noqa: UP047
     def get_container(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
         request = args[0].request if args and hasattr(args[0], "request") else None
 
         if not hasattr(request, "dishka_container"):
-            raise RuntimeError(
-                "Container not found in request. "
-                "Make sure DishkaMiddleware is properly configured."
-            )
+            raise RuntimeError("Container not found in request. Make sure DishkaMiddleware is properly configured.")
 
         return request.dishka_container  # type: ignore
 

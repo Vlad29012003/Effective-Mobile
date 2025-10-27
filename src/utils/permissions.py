@@ -32,9 +32,7 @@ def create_permission(permission_name: str, content_type: ContentType) -> Permis
     return permission
 
 
-def create_groups_and_permissions(
-    group_config: GroupPermission, content_type: ContentType
-):
+def create_groups_and_permissions(group_config: GroupPermission, content_type: ContentType):
     for group_name, permissions in group_config.items():
         group = create_group(group_name)
         for permission_name in permissions:

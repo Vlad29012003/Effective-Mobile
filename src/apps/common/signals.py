@@ -24,10 +24,7 @@ def expire_other_sessions(sender, request, user, **kwargs):
 
     for sess in qs:
         data = sess.get_decoded()
-        if (
-            data.get("_auth_user_id") == str(user.id)
-            and sess.session_key != request.session.session_key
-        ):
+        if data.get("_auth_user_id") == str(user.id) and sess.session_key != request.session.session_key:
             sess.expire_date = timezone.now()
             sess.save()
 
@@ -68,14 +65,11 @@ def create_permissions_from_app_config(sender, **kwargs):
         for app_config in apps.get_app_configs():
             try:
                 # Импортируем модуль permissions
-                permissions_module = __import__(
-                    f"{app_config.name}.permissions", fromlist=["PERMISSIONS"]
-                )
+                permissions_module = __import__(f"{app_config.name}.permissions", fromlist=["PERMISSIONS"])
 
                 # Проверяем, есть ли PERMISSIONS в модуле
                 if hasattr(permissions_module, "PERMISSIONS"):
-                    permissions_list = getattr(permissions_module, "PERMISSIONS")
-                    create_permissions_for_app(app_config.name, permissions_list)
+                    create_permissions_for_app(app_config.name, permissions_module.PERMISSIONS)
 
             except ImportError:
                 continue  # Пропускаем приложения без permissions.py
@@ -90,9 +84,7 @@ def create_permissions_for_app(app_name, permissions_list):
         app_label = app_name.split(".")[-1]
 
         # Создаем общий content type для разрешений (можно создать фиктивный)
-        content_type, _ = ContentType.objects.get_or_create(
-            app_label=app_label, model="permission"
-        )
+        content_type, _ = ContentType.objects.get_or_create(app_label=app_label, model="permission")
 
         created_permissions = []
         for codename, name in permissions_list:
@@ -104,9 +96,7 @@ def create_permissions_for_app(app_name, permissions_list):
                 logger.info(f"Created permission: {codename} for app {app_label}")
 
         if created_permissions:
-            logger.info(
-                f"Created {len(created_permissions)} permissions for {app_label}"
-            )
+            logger.info(f"Created {len(created_permissions)} permissions for {app_label}")
 
     except Exception as e:
         logger.error(f"Error creating permissions for app {app_name}: {e}")
@@ -136,30 +126,22 @@ def create_groups_and_assign_permissions():
                 try:
                     if app_label:
                         # Пытаемся найти разрешение по app_label
-                        content_type = ContentType.objects.get(
-                            app_label=app_label, model="permission"
-                        )
-                        perm = Permission.objects.get(
-                            codename=codename, content_type=content_type
-                        )
+                        content_type = ContentType.objects.get(app_label=app_label, model="permission")
+                        perm = Permission.objects.get(codename=codename, content_type=content_type)
                     else:
                         # Ищем по codename во всех разрешениях
                         perm = Permission.objects.get(codename=codename)
 
                     permissions.append(perm)
                 except Permission.DoesNotExist:
-                    logger.warning(
-                        f"Permission {perm_code} not found for group {group_name}"
-                    )
+                    logger.warning(f"Permission {perm_code} not found for group {group_name}")
                 except ContentType.DoesNotExist:
                     logger.warning(f"ContentType for {app_label} not found")
 
             # Назначаем разрешения группе
             if permissions:
                 group.permissions.set(permissions)
-                logger.info(
-                    f"Assigned {len(permissions)} permissions to group {group_name}"
-                )
+                logger.info(f"Assigned {len(permissions)} permissions to group {group_name}")
 
     except Exception as e:
         logger.error(f"Error creating groups: {e}")
