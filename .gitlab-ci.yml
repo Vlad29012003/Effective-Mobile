@@ -46,8 +46,8 @@ deploy_statefull:dev:
   when: manual
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker stack deploy -c ./infra/swarm/dev/statefull-stack.yml --with-registry-auth project_stack
-    - docker stack deploy -c ./infra/swarm/dev/minio-stack.yml --with-registry-auth project_stack
+    - docker stack deploy -c ./infra/swarm/dev/statefull-stack.yml --detach=false --with-registry-auth project_stack
+    - docker stack deploy -c ./infra/swarm/dev/minio-stack.yml --detach=false --with-registry-auth project_stack
   tags:
     - general-test-ci
   only:
@@ -67,7 +67,7 @@ deploy_app:dev:
   when: manual
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker stack deploy -c ./infra/swarm/dev/app-stack.yml --with-registry-auth project_stack
+    - docker stack deploy -c ./infra/swarm/dev/app-stack.yml --detach=false --with-registry-auth project_stack
   tags:
     - general-test-ci
   only:
@@ -86,7 +86,7 @@ deploy_nginx:dev:
   when: manual
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --with-registry-auth project_stack
+    - docker stack deploy -c ./infra/swarm/dev/nginx-stack.yml --detach=false --with-registry-auth project_stack
   tags:
     - general-test-ci
   only:
