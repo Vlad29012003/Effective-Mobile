@@ -1,4 +1,4 @@
-# django-template-blog
+# effective-mobile
 
 
 # Run project in server
@@ -69,7 +69,6 @@ preload_app = True // Preload the application code before forking workers
         - local.py (Local settings)
         - prod.py (Production settings)
     - asgi.py (ASGI configuration)
-    - celery.py (Celery configuration)
     - urls.py (URL configuration)
     - wsgi.py (WSGI configuration)
 - static (Static files)

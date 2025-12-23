@@ -46,11 +46,8 @@ MY_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "django_prometheus",
     "rest_framework",
     "rest_framework_simplejwt",
-    "django_celery_results",
-    "storages",
     "corsheaders",
     "drf_spectacular",
 ]
@@ -59,7 +56,6 @@ INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.filters",
     "unfold.contrib.inlines",
-    "unfold.contrib.simple_history",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -71,18 +67,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "logify.django.LogifyMiddleware",  # Optional: Uncomment to enable Logify middleware
-    # "config.middlewares.logging.LoggingMiddleware",  # Customized from logify.django.LogifyMiddleware
+    "logify.django.LogifyMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -110,7 +103,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django_prometheus.db.backends.postgresql",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": config("POSTGRES_DB"),
         "USER": config("POSTGRES_USER"),
         "PASSWORD": config("POSTGRES_PASSWORD"),
@@ -118,18 +111,6 @@ DATABASES = {
         "PORT": config("POSTGRES_PORT"),
     },
 }
-
-# TODO: Uncomment the following lines if you have an external database configured.
-# if not IS_TESTING:
-#     DATABASES["external_database"] = {
-#         "ENGINE": "django_prometheus.db.backends.postgresql",
-#         "NAME": config("EXTERNAL_POSTGRES_DB"),
-#         "USER": config("EXTERNAL_POSTGRES_USER"),
-#         "PASSWORD": config("EXTERNAL_POSTGRES_PASSWORD"),
-#         "HOST": config("EXTERNAL_POSTGRES_HOST"),
-#         "PORT": config("EXTERNAL_POSTGRES_PORT"),
-#     }
-#     DATABASE_ROUTERS = ["config.db_routers.ExternalDatabaseRouter"]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -218,41 +199,6 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-USE_S3 = config("USE_S3", default=False, cast=bool)
-
-if USE_S3:
-    # Media files
-    MINIO_ACCESS_KEY = config("MINIO_ROOT_USER")
-    MINIO_SECRET_KEY = config("MINIO_ROOT_PASSWORD")
-    MINIO_BUCKET_NAME = config("MINIO_BUCKET_NAME")
-    MINIO_HOST = config("MINIO_HOST", default="localhost")
-    MINIO_PORT = config("MINIO_PORT", default=9000, cast=int)
-    MINIO_USE_SSL = config("MINIO_USE_SSL", default=False, cast=bool)
-    MINIO_PROTOCOL = "https" if MINIO_USE_SSL else "http"
-    MINIO_ENDPOINT = f"{MINIO_PROTOCOL}://{MINIO_HOST}:{MINIO_PORT}"
-    MINIO_PUBLIC_ENDPOINT = config("MINIO_PUBLIC_ENDPOINT", default=MINIO_ENDPOINT)
-
-    AWS_ACCESS_KEY_ID = MINIO_ACCESS_KEY
-    AWS_SECRET_ACCESS_KEY = MINIO_SECRET_KEY
-    AWS_STORAGE_BUCKET_NAME = MINIO_BUCKET_NAME
-
-    AWS_S3_ENDPOINT_URL = MINIO_ENDPOINT
-    AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True
-    AWS_S3_FILE_OVERWRITE = False
-
-    STORAGES = {
-        "default": {
-            "BACKEND": "config.additional.storage.CustomS3Storage",
-        },
-        "staticfiles": {
-            "BACKEND": "config.additional.storage.CustomS3Storage",
-            "OPTIONS": {
-                "location": "static",
-            },
-        },
-    }
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -260,9 +206,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Unfold
 UNFOLD = {
-    "SITE_TITLE": "Blog admin panel",
-    "SITE_HEADER": "Blog admin panel",
-    "SITE_SUBHEADER": "Blog admin panel",
+    "SITE_TITLE": "Effective Mobile",
+    "SITE_HEADER": "Effective Mobile",
+    "SITE_SUBHEADER": "Effective Mobile",
     "SITE_URL": "https://mbank.kg/",
     "SITE_FAVICONS": [
         {
@@ -273,9 +219,6 @@ UNFOLD = {
         },
     ],
     "SHOW_BACK_BUTTON": True,
-    "SCRIPTS": [
-        lambda request: static("js/admin-row-clickable.js"),
-    ],
 }
 
 # DRF
@@ -294,7 +237,7 @@ REST_FRAMEWORK = {
 
 # Logging
 LOGGING = get_logging_config(
-    service_name="django-json-logify",
+    service_name="effective-mobile",
     level="INFO" if not DEBUG else "DEBUG",
     max_string_length=200,
     sensitive_fields=["password", "passwd"],
@@ -303,38 +246,3 @@ LOGGING = get_logging_config(
         "/api/v1/schema/",
     ],
 )
-
-REDIS_HOST = config("REDIS_HOST")
-REDIS_PORT = config("REDIS_PORT")
-REDIS_DB = config("REDIS_DB", 0)
-REDIS_PASSWORD = config("REDIS_PASSWORD", default="")
-
-if not IS_TESTING:
-    # Cache
-    CACHES = {
-        "default": {
-            "BACKEND": "django_prometheus.cache.backends.redis.RedisCache",
-            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}",
-            "OPTIONS": {
-                "DB": {REDIS_DB},
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "PASSWORD": REDIS_PASSWORD,
-            },
-        }
-    }
-
-# Celery
-_env_celery_beat_schedule_filename = config("ENV_CELERY_BEAT_SCHEDULE_FILENAME", default=None)
-if _env_celery_beat_schedule_filename is not None:
-    CELERY_BEAT_SCHEDULE_FILENAME = _env_celery_beat_schedule_filename
-
-CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-CELERY_RESULT_BACKEND = "django-db"
-
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_CONTENT_ENCODING = "utf-8"
-
-# Sentry (Added in dev and prod settings)
-SENTRY_DSN = None  # For config purposes, set in environment variables

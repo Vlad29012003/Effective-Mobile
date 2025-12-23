@@ -20,25 +20,8 @@ services:
       retries: 5
       start_period: 10s
 
-  redis:
-    image: redis:8.0-bookworm
-    env_file:
-      - ../../envs/env.dev
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/var/lib/redis/data/
-    networks:
-      - backend-net
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
 volumes:
   postgres-data:
-  redis_data:
 
 networks:
   backend-net:

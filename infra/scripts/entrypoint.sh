@@ -1,6 +1,4 @@
-#!/bin/bash
 
-# if any of the commands in your code fails for any reason, the entire script fails
 set -o errexit
 # fail exit if one of your pipe command fails
 set -o pipefail
@@ -20,7 +18,5 @@ if ! python3 ./manage.py migrate; then
   exit 1
 fi
 
-# Need for websocket
-# export DJANGO_SETTINGS_MODULE=config.settings
 
 exec "$@"

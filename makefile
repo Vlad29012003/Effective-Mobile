@@ -2,7 +2,7 @@ PROJECT_DIR = cd src
 UV_RUN = uv run
 MANAGE_PY = uv run manage.py
 
-.PHONY: migrations migrate run test migrations superuser generate_schema run_celery_worker messages compile docker_dev test_django test_domain
+.PHONY: migrations migrate run test migrations superuser generate_schema messages compile docker_dev test_django test_domain
 
 # Запуск сервера
 run:
@@ -11,11 +11,7 @@ run:
 shell:
 	${PROJECT_DIR} && ${MANAGE_PY} shell
 
-worker:
-	${PROJECT_DIR} && celery -A config worker --loglevel=info
-
-beat:
-	${PROJECT_DIR} && celery -A config beat --loglevel=info
+# Celery commands removed - Celery dependencies cleaned
 
 # Запуск тестов
 tests:
@@ -41,13 +37,7 @@ static:
 superuser:
 	${PROJECT_DIR} && ${MANAGE_PY} createsuperuser
 
-# Запуск Celery worker
-celery-worker:
-	${PROJECT_DIR} && celery -A config worker --loglevel=info
-
-# Запуск Celery beat
-celery-beat:
-	${PROJECT_DIR} && celery -A config beat --loglevel=info
+# Celery commands removed - Celery dependencies cleaned
 
 # Создание сообщений для перевода
 messages:

@@ -6,7 +6,4 @@ class CommonConfig(AppConfig):
     name = "apps.common"
 
     def ready(self):
-        import apps.common.signals  # noqa: F401
-        from config.di.container import setup_container
-
-        setup_container()
+        pass

@@ -1,36 +1,22 @@
 [project]
-name = "django-template-blog"
+name = "effective-mobile"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "boto3>=1.38.35",
-    "celery>=5.5.3",
     "decouplet>=0.1.1",
-    "dishka>=1.6.0",
     "django>=5.2.3",
-    "django-celery-beat>=2.8.1",
-    "django-celery-results>=2.6.0",
     "django-cors-headers>=4.7.0",
     "django-filter>=25.1",
-    "django-prometheus>=2.3.1",
-    "django-redis>=5.4.0",
-    "django-simple-history>=3.10.1",
-    "django-storages>=1.14.6",
     "django-unfold>=0.59.0",
     "djangorestframework>=3.16.0",
     "djangorestframework-simplejwt>=5.5.0",
     "drf-spectacular>=0.28.0",
-    "factory-boy>=3.3.3",
-    "faker>=37.4.0",
     "gunicorn>=23.0.0",
     "json-logify==0.1.2",
-    "pillow>=11.2.1",
     "psycopg2-binary>=2.9.10",
-    "redis>=6.2.0",
     "ruff>=0.14.2",
-    "sentry-sdk[django]>=2.30.0",
 ]
 
 [dependency-groups]

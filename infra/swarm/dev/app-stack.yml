@@ -5,14 +5,12 @@ x-common: &common
   secrets:
     - django_secret_key
     - postgres_password
-    - minio_root_password
   env_file:
     - ../../envs/env.dev
   networks:
     - backend-net
   depends_on:
     - db
-    - redis
 
 services:
   backend:
@@ -43,36 +41,6 @@ services:
         max_attempts: 3
         window: 120s
 
-  celery-worker:
-    <<: *common
-    command: ./start-celery-worker.sh
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    healthcheck:
-      test: sh -c 'celery -A config inspect ping'
-      interval: 10s
-      retries: 20
-
-  celery-beat:
-    <<: *common
-    command: ./start-celery-beat.sh
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    healthcheck:
-      test: sh -c 'celery -A config inspect ping'
-      interval: 10s
-      retries: 20
-
 networks:
   backend-net:
     external: true
@@ -82,5 +50,4 @@ secrets:
     external: true
   django_secret_key:
     external: true
-  minio_root_password:
-    external: true
+ 

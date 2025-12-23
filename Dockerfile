@@ -31,12 +31,6 @@ COPY infra/envs/env.${STAGE} .env
 COPY infra/scripts/start.sh ./start.sh
 RUN chmod +x ./start.sh && chown appuser:appuser ./start.sh
 
-COPY infra/scripts/celery/start-celery-worker.sh ./start-celery-worker.sh
-RUN chmod +x ./start-celery-worker.sh && chown appuser:appuser ./start-celery-worker.sh
-
-COPY infra/scripts/celery/start-celery-beat.sh ./start-celery-beat.sh
-RUN chmod +x ./start-celery-beat.sh && chown appuser:appuser ./start-celery-beat.sh
-
 USER appuser
 
 EXPOSE 8000

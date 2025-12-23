@@ -19,12 +19,11 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.common.views import HealthCheckView, trigger_error
+from apps.common.views import HealthCheckView
 from config.settings import DEBUG
 from config.urls.api import api_urlpatterns
 
 urlpatterns = [
-    path("", include("django_prometheus.urls")),
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_urlpatterns)),
     path("api/health/", HealthCheckView.as_view(), name="health-check"),
@@ -34,8 +33,3 @@ if DEBUG:
     from django.conf.urls.static import static
 
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-if settings.SENTRY_DSN:
-    urlpatterns += [
-        path("sentry-debug/", trigger_error),
-    ]
