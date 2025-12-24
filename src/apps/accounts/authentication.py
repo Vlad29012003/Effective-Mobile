@@ -23,4 +23,7 @@ class CustomJWTAuthentication(JWTAuthentication):
         except TokenError:
             raise InvalidToken("Token is invalid or expired")
 
+        if not user.is_active or user.is_deleted:
+            raise InvalidToken("User account is inactive or deleted")
+
         return (user, validated_token)
