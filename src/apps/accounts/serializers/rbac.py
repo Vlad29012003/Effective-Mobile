@@ -2,13 +2,13 @@ from rest_framework import serializers
 
 
 class PermissionCheckRequestSerializer(serializers.Serializer):
+
     actions = serializers.ListField(
-        child=serializers.CharField(max_length=100),
-        help_text="List of actions to check (e.g.: ['blog.create_post', 'blog.edit_post'])",
+        child=serializers.CharField(max_length=200),
+        help_text="List of permission codes to check (e.g.: ['blog.post.create', 'blog.post.update'])",
     )
 
     def validate_actions(self, value: list[str]) -> list[str]:
-        """Validation of actions list."""
         if not value:
             raise serializers.ValidationError("Actions list cannot be empty")
 
@@ -19,3 +19,4 @@ class PermissionCheckRequestSerializer(serializers.Serializer):
                 )
 
         return value
+

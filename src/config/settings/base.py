@@ -32,7 +32,7 @@ SECRET_KEY = config("DJANGO_SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 IS_TESTING = any(arg in sys.argv for arg in ("test", "test_coverage"))
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS").replace(" ", "").split(",")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").replace(" ", "").split(",")
 
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="").split(",")
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
@@ -41,9 +41,13 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 MY_APPS = [
+    "apps.accounts",
     "apps.blog",
     "apps.common",
 ]
+
+# Custom User Model
+AUTH_USER_MODEL = "accounts.User"
 
 THIRD_PARTY_APPS = [
     "rest_framework",

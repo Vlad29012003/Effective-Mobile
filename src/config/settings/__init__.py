@@ -1,7 +1,7 @@
 # type: ignore
 from decouple import config as env_config
 
-RUN_MODE = env_config("RUN_MODE")
+RUN_MODE = env_config("RUN_MODE", default="local")
 
 if RUN_MODE == "prod":
     from .prod import *  # noqa: F403

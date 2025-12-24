@@ -1,72 +1,91 @@
+from django.contrib.auth import get_user_model
 
-import importlib
-from abc import ABC, abstractmethod
+from apps.accounts.models.rbac import Permission, RolePermission, UserRole
+from apps.accounts.models.object_permission import RoleObjectPermission, UserObjectPermission
 
-from django.apps import apps
-from django.contrib.auth.models import User
-
-
-class PermissionChecker(ABC):
-    @abstractmethod
-    def check_permission(self, user: User, permission: str) -> bool:
-    @abstractmethod
-    def get_supported_permissions(self) -> list[str]:
-        
-class PermissionService:
-    def __init__(self):
-        self.checkers: dict[str, PermissionChecker] = {}
-        self._discover_checkers()
-
-    def _discover_checkers(self):
-        for app_config in apps.get_app_configs():
-            try:
-                permissions_module = importlib.import_module(f"{app_config.name}.permissions")
-
-                for attr_name in dir(permissions_module):
-                    attr = getattr(permissions_module, attr_name)
-
-                    if isinstance(attr, type) and issubclass(attr, PermissionChecker) and attr != PermissionChecker:
-                        app_name = app_config.name.split(".")[-1]  # get last part (blog, user, etc.)
-                        self.checkers[app_name] = attr()
-
-            except (ImportError, AttributeError):
-                continue
-
-    def check_permissions(self, user: User, actions: list[str]) -> dict[str, bool]:
-        result = {}
-
-        for action in actions:
-            result[action] = self.check_single_permission(user, action)
-
-        return result
-
-    def check_single_permission(self, user: User, action: str) -> bool:
-        parts = action.split(".", 1)
-        if len(parts) != 2:
-            return False
-
-        app_name, permission = parts
-        checker = self.checkers.get(app_name)
-
-        if not checker:
-            return False
-
-        return checker.check_permission(user, permission)
-
-    def has_permission(self, user: User, action: str) -> bool:
-        return self.check_single_permission(user, action)
-
-    def get_registered_checkers(self) -> dict[str, PermissionChecker]:
-        """Get list of registered checkers."""
-        return self.checkers.copy()
+User = get_user_model()
 
 
-permission_service = PermissionService()
+def has_permission(user: User, permission_code: str) -> bool:
+    if not user or not user.is_active or user.is_deleted:
+        return False
+
+    try:
+        permission_obj = Permission.objects.get(code=permission_code)
+    except Permission.DoesNotExist:
+        return False
+
+    user_roles = UserRole.objects.filter(user=user).select_related("role")
+    role_ids = [ur.role_id for ur in user_roles]
+
+    if not role_ids:
+        return False
+
+    has_role_permission = RolePermission.objects.filter(
+        role_id__in=role_ids,
+        permission=permission_obj
+    ).exists()
+
+    return has_role_permission
 
 
-def has_permission(user: User, action: str) -> bool:
-    return permission_service.has_permission(user, action)
+def check_permissions(user: User, permission_codes: list[str]) -> dict[str, bool]:
+    result = {}
+    for permission_code in permission_codes:
+        result[permission_code] = has_permission(user, permission_code)
+    return result
 
 
-def check_permissions(user: User, actions: list[str]) -> dict[str, bool]:
-    return permission_service.check_permissions(user, actions)
+def check_object_permission(
+    user: User,
+    permission_code: str,
+    resource_type: str,
+    resource_id: int
+) -> bool | None:
+    if not user or not user.is_active or user.is_deleted:
+        return False
+
+    try:
+        permission_obj = Permission.objects.get(code=permission_code)
+    except Permission.DoesNotExist:
+        return None
+
+    user_obj_perm = UserObjectPermission.objects.filter(
+        user=user,
+        permission=permission_obj,
+        resource_type=resource_type,
+        resource_id=resource_id
+    ).first()
+
+    if user_obj_perm:
+        return user_obj_perm.is_granted
+
+    user_roles = UserRole.objects.filter(user=user).select_related("role")
+    role_ids = [ur.role_id for ur in user_roles]
+
+    if role_ids:
+        role_obj_perm = RoleObjectPermission.objects.filter(
+            role_id__in=role_ids,
+            permission=permission_obj,
+            resource_type=resource_type,
+            resource_id=resource_id
+        ).first()
+
+        if role_obj_perm:
+            return role_obj_perm.is_granted
+
+    return None
+
+
+def has_object_permission(
+    user: User,
+    permission_code: str,
+    resource_type: str,
+    resource_id: int
+) -> bool:
+    obj_permission = check_object_permission(user, permission_code, resource_type, resource_id)
+    
+    if obj_permission is not None:
+        return obj_permission
+    
+    return has_permission(user, permission_code)
