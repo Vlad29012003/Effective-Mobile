@@ -18,6 +18,13 @@ class PostListView(ListCreateAPIView):
     resource_type = "blog.post"
     serializer_class = PostSerializer
 
+    def get_required_permission(self, request):
+        if request.method == "GET":
+            return "blog.post.list"
+        elif request.method == "POST":
+            return "blog.post.create"
+        return None
+
     def get_serializer_class(self):
         if self.request.method == "POST":
             return PostCreateSerializer
@@ -91,6 +98,8 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        self.check_object_permissions(request, instance)
         post = MOCK_POSTS[instance.id]
         serializer = self.get_serializer(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -98,6 +107,7 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+        self.check_object_permissions(request, instance)
         serializer = self.get_serializer(data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
@@ -115,6 +125,7 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        self.check_object_permissions(request, instance)
         del MOCK_POSTS[instance.id]
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -67,19 +67,12 @@ class HasObjectPermission(permissions.BasePermission):
         if resource_id is None:
             return False
 
-        if has_object_permission(request.user, permission_code, resource_type, resource_id):
-            return True
+        has_perm = has_object_permission(request.user, permission_code, resource_type, resource_id)
 
-        self.message = f"Требуется право: {permission_code} для {resource_type}#{resource_id}"
-        raise PermissionDeniedException(
-            message="У вас нет прав для доступа к этому ресурсу",
-            errors=[
-                {
-                    "code": "permission_denied",
-                    "detail": f"Требуется право: {permission_code} для {resource_type}#{resource_id}",
-                }
-            ],
-        )
+        if not has_perm:
+            self.message = f"Требуется право: {permission_code} для {resource_type}#{resource_id}"
+
+        return has_perm
 
     def _get_permission_code(self, request, view):
         if hasattr(view, "get_required_permission"):
