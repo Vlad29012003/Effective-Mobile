@@ -1,3 +1,14 @@
+from apps.accounts.serializers.admin import (
+    AdminUserSerializer,
+    PermissionCreateSerializer,
+    PermissionSerializer,
+    RoleCreateSerializer,
+    RolePermissionAssignSerializer,
+    RolePermissionSerializer,
+    RoleSerializer,
+    UserRoleAssignSerializer,
+    UserRoleSerializer,
+)
 from apps.accounts.serializers.auth import (
     LoginSerializer,
     LogoutSerializer,
@@ -20,5 +31,14 @@ __all__ = [
     "UserSerializer",
     "UserProfileSerializer",
     "UserUpdateSerializer",
+    "RoleSerializer",
+    "RoleCreateSerializer",
+    "PermissionSerializer",
+    "PermissionCreateSerializer",
+    "RolePermissionSerializer",
+    "RolePermissionAssignSerializer",
+    "UserRoleSerializer",
+    "UserRoleAssignSerializer",
+    "AdminUserSerializer",
 ]
 

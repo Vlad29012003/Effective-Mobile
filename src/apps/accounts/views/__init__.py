@@ -1,3 +1,14 @@
+from apps.accounts.views.admin import (
+    PermissionDetailView,
+    PermissionListView,
+    RoleDetailView,
+    RoleListView,
+    RolePermissionDetailView,
+    RolePermissionListView,
+    UserListView,
+    UserRoleDetailView,
+    UserRoleListView,
+)
 from apps.accounts.views.auth import (
     LoginView,
     LogoutView,
@@ -14,5 +25,14 @@ __all__ = [
     "RefreshTokenView",
     "LogoutView",
     "UserProfileView",
+    "RoleListView",
+    "RoleDetailView",
+    "PermissionListView",
+    "PermissionDetailView",
+    "RolePermissionListView",
+    "RolePermissionDetailView",
+    "UserListView",
+    "UserRoleListView",
+    "UserRoleDetailView",
 ]
 
