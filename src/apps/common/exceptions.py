@@ -40,16 +40,28 @@ class StandardAPIException(APIException):
     def __init__(
         self,
         message: str | None = None,
-        errors: list[StandardError] | None = None,
+        errors: list[StandardError | dict[str, Any]] | None = None,
         status_code: int | None = None,
     ):
         self.message = message or str(self.default_detail)
-        self.errors = errors or []
+        raw_errors = errors or []
+
+        self.errors = []
+        for error in raw_errors:
+            if isinstance(error, dict):
+                self.errors.append(
+                    StandardError(
+                        code=error.get("code", "error"),
+                        detail=error.get("detail", ""),
+                        attr=error.get("attr"),
+                    )
+                )
+            elif isinstance(error, StandardError):
+                self.errors.append(error)
 
         if status_code:
             self.status_code = status_code
 
-        # Create detail in DRF expected format
         detail = {
             "message": self.message,
             "errors": [error.to_dict() for error in self.errors],
@@ -134,11 +146,9 @@ def convert_drf_validation_error(
     return ValidationException(errors=errors)
 
 
-# Common error codes constants
 class ErrorCodes:
     """Standard error codes for consistency."""
 
-    # Validation errors
     REQUIRED = "required"
     INVALID = "invalid"
     BLANK = "blank"
@@ -148,7 +158,6 @@ class ErrorCodes:
     MIN_VALUE = "min_value"
     MAX_VALUE = "max_value"
 
-    # Business logic errors
     DUPLICATE = "duplicate"
     NOT_FOUND = "not_found"
     PERMISSION_DENIED = "permission_denied"
@@ -156,7 +165,6 @@ class ErrorCodes:
     EXPIRED = "expired"
     LIMIT_EXCEEDED = "limit_exceeded"
 
-    # Authentication errors
     INVALID_CREDENTIALS = "invalid_credentials"
     TOKEN_EXPIRED = "token_expired"
     TOKEN_INVALID = "token_invalid"

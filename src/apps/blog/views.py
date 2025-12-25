@@ -1,52 +1,65 @@
 from rest_framework import status
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.accounts.permissions import HasObjectPermission, HasPermission
+from apps.blog.serializers import PostCreateSerializer, PostSerializer, PostUpdateSerializer
+
+MOCK_POSTS = {
+    1: {"id": 1, "title": "Первый пост", "content": "Содержимое первого поста", "author": "admin@test.com", "created_at": "2024-01-01T10:00:00Z"},
+    2: {"id": 2, "title": "Второй пост", "content": "Содержимое второго поста", "author": "user@test.com", "created_at": "2024-01-02T11:00:00Z"},
+    3: {"id": 3, "title": "Третий пост", "content": "Содержимое третьего поста", "author": "moderator@test.com", "created_at": "2024-01-03T12:00:00Z"},
+}
 
 
-class PostListView(APIView):
+class PostListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, HasPermission]
     resource_type = "blog.post"
+    serializer_class = PostSerializer
 
-    MOCK_POSTS = [
-        {"id": 1, "title": "Первый пост", "content": "Содержимое первого поста", "author": "admin@test.com", "created_at": "2024-01-01T10:00:00Z"},
-        {"id": 2, "title": "Второй пост", "content": "Содержимое второго поста", "author": "user@test.com", "created_at": "2024-01-02T11:00:00Z"},
-        {"id": 3, "title": "Третий пост", "content": "Содержимое третьего поста", "author": "moderator@test.com", "created_at": "2024-01-03T12:00:00Z"},
-    ]
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return PostCreateSerializer
+        return PostSerializer
 
-    def get(self, request):
+    def list(self, request, *args, **kwargs):
+        posts_list = list(MOCK_POSTS.values())
+        serializer = self.get_serializer(posts_list, many=True)
         return Response(
             {
-                "count": len(self.MOCK_POSTS),
-                "results": self.MOCK_POSTS,
+                "count": len(MOCK_POSTS),
+                "results": serializer.data,
             },
             status=status.HTTP_200_OK,
         )
 
-    def post(self, request):
-        data = request.data
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+
+        new_id = max(MOCK_POSTS.keys(), default=0) + 1
+
         new_post = {
-            "id": len(self.MOCK_POSTS) + 1,
-            "title": data.get("title", "Новый пост"),
-            "content": data.get("content", ""),
+            "id": new_id,
+            "title": serializer.validated_data["title"],
+            "content": serializer.validated_data["content"],
             "author": request.user.email,
             "created_at": "2024-01-04T13:00:00Z",
         }
 
-        return Response(new_post, status=status.HTTP_201_CREATED)
+        MOCK_POSTS[new_id] = new_post
+
+        response_serializer = PostSerializer(new_post)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PostDetailView(APIView):
+class PostDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, HasObjectPermission]
     resource_type = "blog.post"
-
-    MOCK_POSTS = {
-        1: {"id": 1, "title": "Первый пост", "content": "Содержимое первого поста", "author": "admin@test.com", "created_at": "2024-01-01T10:00:00Z"},
-        2: {"id": 2, "title": "Второй пост", "content": "Содержимое второго поста", "author": "user@test.com", "created_at": "2024-01-02T11:00:00Z"},
-        3: {"id": 3, "title": "Третий пост", "content": "Содержимое третьего поста", "author": "moderator@test.com", "created_at": "2024-01-03T12:00:00Z"},
-    }
+    serializer_class = PostSerializer
+    lookup_field = "post_id"
 
     def get_required_permission(self, request):
         method = request.method
@@ -58,9 +71,14 @@ class PostDetailView(APIView):
             return "blog.post.delete"
         return None
 
+    def get_serializer_class(self):
+        if self.request.method in ["PUT", "PATCH"]:
+            return PostUpdateSerializer
+        return PostSerializer
+
     def get_object(self):
         post_id = self.kwargs.get("post_id")
-        if post_id not in self.MOCK_POSTS:
+        if post_id not in MOCK_POSTS:
             from apps.common.exceptions import ResourceNotFoundException
 
             raise ResourceNotFoundException(
@@ -68,44 +86,35 @@ class PostDetailView(APIView):
                 errors=[{"code": "post_not_found", "detail": f"Пост с ID {post_id} не найден"}],
             )
 
-        post = self.MOCK_POSTS[post_id]
+        post = MOCK_POSTS[post_id]
         return type("MockPost", (), {"id": post["id"], "pk": post["id"]})()
 
-    def get(self, request, post_id):
-        self.kwargs["post_id"] = post_id
-        obj = self.get_object()
-        post = self.MOCK_POSTS.get(obj.id)
-        return Response(post, status=status.HTTP_200_OK)
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        post = MOCK_POSTS[instance.id]
+        serializer = self.get_serializer(post)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request, post_id):
-        self.kwargs["post_id"] = post_id
-        obj = self.get_object()
-        post = self.MOCK_POSTS[obj.id]
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
 
+        post = MOCK_POSTS[instance.id]
         updated_post = {
             **post,
-            "title": request.data.get("title", post["title"]),
-            "content": request.data.get("content", post["content"]),
+            **serializer.validated_data,
             "updated_at": "2024-01-04T14:00:00Z",
         }
 
-        return Response(updated_post, status=status.HTTP_200_OK)
+        MOCK_POSTS[instance.id] = updated_post
 
-    def patch(self, request, post_id):
-        self.kwargs["post_id"] = post_id
-        obj = self.get_object()
-        post = self.MOCK_POSTS[obj.id]
+        response_serializer = PostSerializer(updated_post)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-        updated_post = {
-            **post,
-            **{k: v for k, v in request.data.items() if k in ["title", "content"]},
-            "updated_at": "2024-01-04T14:00:00Z",
-        }
-
-        return Response(updated_post, status=status.HTTP_200_OK)
-
-    def delete(self, request, post_id):
-        self.kwargs["post_id"] = post_id
-        obj = self.get_object()
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        del MOCK_POSTS[instance.id]
         return Response(status=status.HTTP_204_NO_CONTENT)
 

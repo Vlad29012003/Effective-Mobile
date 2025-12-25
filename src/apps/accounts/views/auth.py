@@ -1,7 +1,7 @@
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.accounts.serializers.auth import (
     LoginSerializer,
@@ -12,11 +12,12 @@ from apps.accounts.serializers.auth import (
 from apps.accounts.serializers.user import UserSerializer
 
 
-class RegisterView(APIView):
-    permission_classes = []
+class RegisterView(CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
 
@@ -29,11 +30,12 @@ class RegisterView(APIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-class LoginView(APIView):
-    permission_classes = []
+class LoginView(CreateAPIView):
+    serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
 
@@ -46,22 +48,24 @@ class LoginView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-class RefreshTokenView(APIView):
-    permission_classes = []
+class RefreshTokenView(CreateAPIView):
+    serializer_class = RefreshTokenSerializer
+    permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = RefreshTokenSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
 
         return Response(result, status=status.HTTP_200_OK)
 
 
-class LogoutView(APIView):
+class LogoutView(CreateAPIView):
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        serializer = LogoutSerializer(data=request.data, context={"request": request})
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
 
