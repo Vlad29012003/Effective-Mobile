@@ -67,7 +67,7 @@ def logout_user(access_token: str, refresh_token: str, user: User) -> None:
     access_blacklisted = add_token_to_blacklist(access_token, user)
     refresh_blacklisted = add_token_to_blacklist(refresh_token, user)
 
-    if not access_blacklisted and not refresh_blacklisted:
+    if not access_blacklisted or not refresh_blacklisted:
         raise ValidationException(
             message="Не удалось добавить токены в blacklist",
             errors=[{"code": "logout_failed", "detail": "Невалидные токены"}],
@@ -106,5 +106,5 @@ def refresh_access_token(refresh_token: str) -> dict[str, str]:
 
     access_token = refresh.access_token
 
-    return {"access_token": str(access_token)}
+    return str(access_token)
 
